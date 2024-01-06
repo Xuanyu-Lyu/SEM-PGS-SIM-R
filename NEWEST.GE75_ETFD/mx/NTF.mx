@@ -1,0 +1,187 @@
+! Rose Fear data: Social phobia
+! Twins and parents: Genetic and cultural transmission model.
+! P--P assortment
+! to estimate d we are bounding r at 0 & freeing N
+
+#define nvar 1
+
+#NGroups 10
+G1: Model parameters
+Calculation
+Begin Matrices;
+D Full nvar nvar free ! assortative mating paths
+P Symm nvar nvar free ! within person covariance (Rp)
+A Low  nvar nvar free ! additive genetic paths
+M Full nvar nvar free !  paternal cultural transmission
+O Full nvar nvar free ! maternal  cultural transmission
+Q Symm nvar nvar free ! additive genetic covariance (Ra)
+W Full nvar nvar free ! A-C covariance
+E Low nvar nvar free ! specific environment paths
+N Low nvar nvar free ! non-additive paths
+S Low nvar nvar free ! sibling environment paths
+X Sym nvar nvar free ! variance and covariance of F 
+H Full 1 1 ! scalar, .5
+G full 1 1 free
+Z zero 1 1 
+End Matrices;
+Matrix H 0.5
+Ma P 1 
+Ma A .5
+Ma E .7
+Ma Q 1
+Bo 0 1 X 1 1 
+EQ O 1 1 M 1 1 
+Begin Algebra;
+I = P*D*P ;    		! COvariance b/n spouses
+T = Q*A + W ;		! Genotype-Phenotype Cov
+K = P*M + P*D*P*O + H*A*T + H*A*T*D*P ; ! Father Child
+L = P*O + P*D*P*M + H*A*T + H*A*T*D*P ; ! Mother Child
+U = A*Q*A + X + A*W + A*W + N*N + S*S ; ! MZ twins
+V = A*A*(Q-H) + X + A*W + A*W + (H.H)*N*N + S*S ; ! DZ twins
+
+! A E D/S T F CVaf AM
+Y= P|A&Q | E*E' | N*N' | S*S' | X | W | I ; 
+End Algebra;
+op MXY=SI.txt
+option Rsiduals
+End
+
+G2: Phenotypic Variance Constraint
+Constraint NInput=1
+Begin Matrices= Group 1
+Constraint P= (A*Q*A + X + A*W + A*W + N*N + S*S + E*E ) ;
+Option Rsiduals
+End
+
+G3: Genetic Constraint
+Constraint
+Matrices= Group 1
+Constraint Q= (H+H) + T*D*T ;
+Option Rsiduals
+End
+
+G4: A-F Constraint
+Constraint
+Matrices= Group 1
+Constraint W= H*T*M + H*T*O + H*T*D*P*M + H*T*D*P*O   ;
+Option Rsiduals
+End
+
+G5: Common Environment Constraint
+Constraint
+Matrices= Group 1
+Constraint X = (M*M)*P + (O*O)*P + M*O*P*D*P + M*O*P*D*P  ;
+Option Rsiduals
+End
+
+
+G6 - MZ Twins and parents
+Data NI=37
+Missing=-999
+Rec File =MZM
+Labels fam  T1 T2 pa Mo bro1 bro2 sis1 sis2 sp.tw1 son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 sp.tw2 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+paA MoA T1A T2A bro1A bro2A sis1A sis2A sp.tw1A son1.tw1A son2.tw1A dau1.tw1A dau2.tw1A sp.tw2A son1.tw2A son2.tw2A dau1.tw2A dau2.tw2A 
+  Select pa mo t1 t2 ;
+Matrices= Group 1
+Means G|G|G|G ;
+Covariance 
+( P | I'| K | K )_
+( I | P | L | L )_
+( K'| L'| P | U )_
+( K'| L'| U'| P ) ;
+Option RSiduals
+End
+
+G6 - MZ Twins and parents
+Data NI=37
+Missing=-999
+Rec File =MZF
+Labels fam  T1 T2 pa Mo bro1 bro2 sis1 sis2 sp.tw1 son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 sp.tw2 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+paA MoA T1A T2A bro1A bro2A sis1A sis2A sp.tw1A son1.tw1A son2.tw1A dau1.tw1A dau2.tw1A sp.tw2A son1.tw2A son2.tw2A dau1.tw2A dau2.tw2A 
+  Select pa mo t1 t2 ;
+Matrices= Group 1
+Means G|G|G|G ;
+Covariance 
+( P | I'| K | K )_
+( I | P | L | L )_
+( K'| L'| P | U )_
+( K'| L'| U'| P ) ;
+Option RSiduals
+End
+
+
+G7 - DZ twins and parents Rose Fear Factor 1
+Data NI=37
+Missing=-999
+Rec File =DZF
+Labels fam  T1 T2 pa Mo bro1 bro2 sis1 sis2 sp.tw1 son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 sp.tw2 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+paA MoA T1A T2A bro1A bro2A sis1A sis2A sp.tw1A son1.tw1A son2.tw1A dau1.tw1A dau2.tw1A sp.tw2A son1.tw2A son2.tw2A dau1.tw2A dau2.tw2A 
+  Select pa mo t1 t2 ;
+Matrices= Group 1
+Means G|G|G|G ;
+Covariance 
+( P | I'| K | K )_
+( I | P | L | L )_
+( K'| L'| P | V )_
+( K'| L'| V'| P ) ;
+Option RSiduals
+End
+
+
+G7 - DZ twins and parents Rose Fear Factor 1
+Data NI=37
+Missing=-999
+Rec File =DZM
+Labels fam  T1 T2 pa Mo bro1 bro2 sis1 sis2 sp.tw1 son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 sp.tw2 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+paA MoA T1A T2A bro1A bro2A sis1A sis2A sp.tw1A son1.tw1A son2.tw1A dau1.tw1A dau2.tw1A sp.tw2A son1.tw2A son2.tw2A dau1.tw2A dau2.tw2A 
+  Select pa mo t1 t2 ;
+Matrices= Group 1
+Means G|G|G|G ;
+Covariance 
+( P | I'| K | K )_
+( I | P | L | L )_
+( K'| L'| P | V )_
+( K'| L'| V'| P ) ;
+Option RSiduals
+End
+
+
+G7 - DZ twins and parents Rose Fear Factor 1
+Data NI=37
+Missing=-999
+Rec File =DZOS
+Labels fam  T1 T2 pa Mo bro1 bro2 sis1 sis2 sp.tw1 son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 sp.tw2 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+paA MoA T1A T2A bro1A bro2A sis1A sis2A sp.tw1A son1.tw1A son2.tw1A dau1.tw1A dau2.tw1A sp.tw2A son1.tw2A son2.tw2A dau1.tw2A dau2.tw2A 
+  Select pa mo t1 t2 ;
+Matrices= Group 1
+Means G|G|G|G ;
+Covariance 
+( P | I'| K | K )_
+( I | P | L | L )_
+( K'| L'| P | V )_
+( K'| L'| V'| P ) ;
+Option Rsiduals Multiple
+Option NDecimals=2
+Option Format=(7(F6.3,1x)) 
+!Drop S 1 1 1 
+End
+
+
+
+
+
+!SECOND RUN - CORRECT MODEL
+
+System mv SI.txt SI.full.txt
+
+! Drop parameters
+!Drop D 1 1 1    ! assortative mating
+Drop S 1 1 1    ! sibling env
+!Drop A 1 1 1    ! additive genetics
+!Drop N 1 1 1    ! dominance
+!Drop W 1 1 1    ! Cov(A,F)
+!Drop M 1 1 1 O 1 1 1    ! cultural transmission
+
+
+
+

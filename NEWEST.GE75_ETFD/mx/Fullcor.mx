@@ -1,0 +1,752 @@
+
+Trial nuclear family 'genetic and cultural transmission' script with Assortative mating
+
+!  By Sarah Medland, Matthew Keller, and Pete Hatemi
+!  version 5/2/2007
+    
+!NOTE: there are no reserved matrix names in this script
+
+
+#def nindiv 8
+
+#define nvar 1
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________starting values_______________________________________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+#define $st_means        Start 0 P 1 1 Q 1 1                  ! means
+#define $st_sps          Start .1 A 1 1                       ! Spouses
+#define $st_po           Start .2 D 1 1 E 1 1 F 1 1 G 1 1     ! Par-off
+#define $st_dz           Start .5 J 1 1 K 1 1 L 1 1           ! DZr
+#define $st_sib          Start .5 M 1 1 N 1 1 O 1 1           ! Sib
+#define $st_mz           Start .9 H 1 1 I 1 1                 ! MZM MZF
+#define $st_var          Start 1.3 B 1 1 C 1 1                  ! maleV femaleV
+#define $st_all		 start all .5
+#define $st_gp-sp	 Start .0 A 1 1 B 1 1 C 1 1 D 1 1
+#define $st_av1          Start .1  I 1 1 J 1 1 K 1 1 L 1 1 M 1 1 N 1 1 O 1 1 P 1 1
+#define $st_av           Start .1 A 1 1 B 1 1 Q 1 1 R 1 1 
+#define $st_co           Start .1 K 1 1 L 1 1 M 1 1 N 1 1 O 1 1 P 1 1
+#define $st_av2          Start .1 A 1 1 N 1 1 
+#define $st_co2          Start .1 K 1 1 L 1 1 M 1 1 N 1 1 
+#define $st_inlaws       Start .1 O 1 1 P 1 1 Q 1 1 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Model Parameters______________________________________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#define $mean_m	        =P6 ! total male variance
+#define $mean_f		=Q6 ! total female variance
+#define $maleV		=B1
+#define $femaleV	=C1
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Observed Covariances__________________________________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________NUCELAR FAMILY______________________
+#define $father.mother	=A1
+#define $f-son		=D1
+#define $m-son		=E1
+#define $f-dau		=F1
+#define $m-dau		=G1
+#define $mm-mz		=H1
+#define $ff-mz		=I1
+#define $mm-dz		=J1
+#define $ff-dz		=K1
+#define $os-dz		=L1
+#define $msib		=M1
+#define $fsib		=N1
+#define $ossib  	=O1
+!_________INLAWS & GRANDPARENTS____________
+! gf/gm-(sex)spouce
+#define $gf-msp 	=A2
+#define $gf-fsp 	=B2
+#define $gm-msp 	=C2
+#define $gm-fsp 	=D2
+#define $patgf-gd   	=E2 
+#define $patgf-gs   	=F2
+#define $patgm-gd   	=G2
+#define $patgm-gs   	=H2
+#define $matgf-gd   	=Q2 
+#define $matgf-gs   	=R2
+#define $matgm-gd   	=S2
+#define $matgm-gs   	=X2
+
+! twin-spouse
+#define $mzm-sp		=A3
+#define $mzf-sp		=B3
+
+#define $dzm-sp		=A4
+#define $dzf-sp		=B4
+#define $dzo-mmsp	=A5
+#define $dzo-ffsp	=B5
+
+! sib-spouse - by sex 
+#define $s-sp-m		=O5
+#define $s-sp-f		=P5
+#define $s-sp-mf	=Q5
+#define $s-sp-fm	=X5
+
+! spouse-spouse by zyg
+#define $mzm-sp_sp	=Q3
+#define $mzf-sp_sp	=R3
+#define $dzm-sp_sp	=Q4
+#define $dzf-sp_sp	=R4
+#define $dzo-sp_sp	=N5
+
+!________AVUNCULAR_________________________
+! biological avunculars by twin type
+!m/d/s(mz/dz/sib)m/f(male/female)
+#define $mm-nep		=C3
+#define $mm-nei		=D3
+#define $mf-nep		=E3
+#define $mf-nei		=F3
+
+#define $dm-nep		=C4
+#define $dm-nei		=D4
+#define $df-nep		=E4
+#define $df-nei		=F4
+#define $dom-nep	=C5
+#define $dom-nei	=D5
+#define $dof-nep	=E5
+#define $dof-nei	=F5
+
+!aunts and uncles who from same sex siblings
+#define $ss-uncle-nep	=I2
+#define $ss-uncle-nei	=J2
+#define $ss-aunt-nep	=K2
+#define $ss-aunt-nei	=L2
+!aunts and uncles who from os siblings
+#define $os-uncle-nep	=M2
+#define $os-uncle-nei	=N2
+#define $os-aunt-nep	=O2
+#define $os-aunt-nei	=P2
+
+!________AVUNCULARS married in_________________________
+#define $mmsp-nep	=G3
+#define $mmsp-nei	=H3
+#define $mfsp-nep	=I3
+#define $mfsp-nei	=J3
+
+#define $dmsp-nep	=G4
+#define $dmsp-nei	=H4
+#define $dfsp-nep	=I4
+#define $dfsp-nei	=J4
+#define $domsp-nep	=G5
+#define $domsp-nei	=H5
+#define $dofsp-nep	=I5
+#define $dofsp-nei	=J5
+
+!________COUSINS by twin type__________________
+!m/d(mzm-f/dzm-f-o)c(cousin)-mm/ff/os
+#define $mmc-mm		=K3
+#define $mmc-ff		=L3
+#define $mmc-os		=M3
+#define $mfc-mm		=N3
+#define $mfc-ff		=O3
+#define $mfc-os		=P3
+
+#define $dmc-mm		=K4
+#define $dmc-ff		=L4
+#define $dmc-os		=M4
+#define $dfc-mm		=N4
+#define $dfc-ff		=O4
+#define $dfc-os		=P4
+#define $doc-mm		=K5
+#define $doc-ff		=L5
+#define $doc-mf		=M5
+#define $doc-fm		=R5
+!______________________________________________
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    
+!GROUP1: Initalise placeholders and sumarise the model parameters
+!Nuclear Family Group
+Calculation Ngroups=11
+Begin Matrices;
+!_________NUCELAR FAMILY______________________)
+A symm nvar nvar free ! father.mother	(A1)
+B symm nvar nvar free ! maleV		(B1)
+C symm nvar nvar free ! femaleV		(C1)
+D symm nvar nvar free ! f-son		(D1)
+E symm nvar nvar free ! m-son		(E1)
+F symm nvar nvar free ! f-dau		(F1)
+G symm nvar nvar free ! m-dau		(G1)
+H symm nvar nvar free ! mm-mz		(H1)
+I symm nvar nvar free ! ff-mz		(I1)
+J symm nvar nvar free ! mm-dz		(J1)
+K symm nvar nvar free ! ff-dz		(K1)
+L symm nvar nvar free ! os-dz		(L1)
+M symm nvar nvar free ! msib		(M1)
+N symm nvar nvar free ! fsib		(N1)
+O symm nvar nvar free ! ossib  		(O1)
+U full nvar nvar 
+End Matrices;
+!Start values
+Ma U 9
+Begin Algebra;
+P = 
+ B | A | D | D | D | D | F | F_
+ A | C | E | E | E | E | G | G_
+ D | E | B | H | M | M | O | O_
+ D | E | H | B | M | M | O | O_
+ D | E | M | M | B | M | O | O_
+ D | E | M | M | M | B | O | O_
+ F | G | O | O | O | O | C | N_
+ F | G | O | O | O | O | N | C ;  !mzm
+Q=
+ B | A | F | F | D | D | F | F_
+ A | C | G | G | E | E | G | G_
+ F | G | C | I | O | O | N | N_
+ F | G | I | C | O | O | N | N_
+ D | E | O | O | B | M | O | O_
+ D | E | O | O | M | B | O | O_
+ F | G | N | N | O | O | C | N_
+ F | G | N | N | O | O | N | C ;  !mzf
+R=
+ B | A | D | D | D | D | F | F_
+ A | C | E | E | E | E | G | G_
+ D | E | B | J | M | M | O | O_
+ D | E | J | B | M | M | O | O_
+ D | E | M | M | B | M | O | O_
+ D | E | M | M | M | B | O | O_
+ F | G | O | O | O | O | C | N_
+ F | G | O | O | O | O | N | C ;  !dzm
+S=
+ B | A | F | F | D | D | F | F_
+ A | C | G | G | E | E | G | G_
+ F | G | C | K | O | O | N | N_
+ F | G | K | C | O | O | N | N_
+ D | E | O | O | B | M | O | O_
+ D | E | O | O | M | B | O | O_
+ F | G | N | N | O | O | C | N_
+ F | G | N | N | O | O | N | C ;  !dzf
+T= 
+ B | A | F | D | D | D | F | F_
+ A | C | G | E | E | E | G | G_
+ F | G | C | L | O | O | N | N_
+ D | E | L | B | M | M | O | O_
+ D | E | O | M | B | M | O | O_
+ D | E | O | M | M | B | O | O_
+ F | G | N | O | O | O | C | N_
+ F | G | N | O | O | O | N | C ;  !dzo
+V =  A_D_D_F_F ;              !spouse father offspring YELLOW
+W =  A_E_E_G_G ;              !spouse mother offspring
+X =
+B | D | D | F | F_
+D | B | M | O | O_
+D | M | B | O | O_
+F | O | O | C | N_
+F | O | O | N | C ;                  !father brothers and sisters
+Y =
+C | E | E | G | G_
+E | B | M | O | O_
+E | M | B | O | O_
+G | O | O | C | N_
+G | O | O | N | C ;                  !mother brothers and sisters
+!sumary matrix
+Z=
+B | C | U | U_
+U | U | A | U_ 
+H | I | U | U_
+J | K | L | L_
+M | N | O | O_
+D | G | F | E;
+End Algebra;
+ Label Row Z mztw dztw si pc 
+  Label Col Z Mm Ff Mf Fm
+ $st_all
+ $st_sps
+ $st_po
+ $st_dz
+ $st_sib
+ $st_mz
+ $st_var
+End
+
+GROUP2: Initalise placeholders and sumarise the model parameters
+!grand parents & non-twin avunc
+Calculation Ngroups=
+Begin Matrices;
+!_________INLAWS & GRANDPARENTS____________)
+! gf/gm-(sex)spouce)
+A symm nvar nvar free ! gf-msp 	 	(A2)
+B symm nvar nvar free ! gf-fsp 	 	(B2)
+C symm nvar nvar free ! gm-msp 	 	(C2)
+D symm nvar nvar free ! gm-fsp 	 	(D2)
+E symm nvar nvar free ! patgf-gd   	(E2)
+F symm nvar nvar free ! patgf-gs   	(F2)
+G symm nvar nvar free ! patgm-gd   	(G2)
+H symm nvar nvar free ! patgm-gs   	(H2)
+Q symm nvar nvar free ! matgf-gd   	(Q2)
+R symm nvar nvar free ! matgf-gs   	(R2)
+S symm nvar nvar free ! matgm-gd   	(S2)
+X symm nvar nvar free ! matgm-gs   	(X2)
+!aunts and uncles who are related by same sex siblings)
+I symm nvar nvar free ! ss-uncle-nep	(I2)
+J symm nvar nvar free ! ss-uncle-nei	(J2)
+K symm nvar nvar free ! ss-aunt-nep	(K2)
+L symm nvar nvar free ! ss-aunt-nei	(L2)
+!aunts and uncles who are related by os siblings)
+M symm nvar nvar free ! os-uncle-nep	(M2)
+N symm nvar nvar free ! os-uncle-nei	(N2)
+O symm nvar nvar free ! os-aunt-nep	(O2)
+P symm nvar nvar free ! os-aunt-nei	(P2)
+End Matrices;
+Begin Algebra;
+T = A|C_R|X_R|X_Q|S_Q|S ;  ! MAT grand parent - grand child + M spouse
+U = B|D_F|H_F|H_E|G_E|G ;  ! PAT grand parent - grand child + F spouse
+!non-twin avuncs 
+! twin is male - spouse is female
+V = 
+  I | I | O | O _ ! nephews
+  I | I | O | O _ ! nephews
+  J | J | P | P _ ! neices
+  J | J | P | P ; ! neices
+! twin is female - spouse is male
+W = 
+  M | M | K | K _ ! nephews
+  M | M | K | K _ ! nephews
+  N | N | L | L _ ! neices
+  N | N | L | L ; ! neices
+Z=
+F|G|E|H_
+R|S|Q|X_
+A|D|B|C_
+I|O|J|P_
+M|L|N|K;
+End Algebra;
+  Label Row Z gp_pat gp_mat gp_sp pat_avunc mat_avunc
+  Label Col Z Mm Ff Mf Fm
+$st_all
+$st_gp-sp
+$st_av1
+END
+
+GROUP3: Initalise placeholders and sumarise the model parameters
+!MZ Avuncular
+Calculation Ngroups=
+Begin Matrices;
+A symm nvar nvar free ! mzm-sp		(A3)
+B symm nvar nvar free ! mzf-sp		(B3)
+C symm nvar nvar free ! mm-nep		(C3)
+D symm nvar nvar free ! mm-nei		(D3)
+E symm nvar nvar free ! mf-nep		(E3)
+F symm nvar nvar free ! mf-nei		(F3)
+G symm nvar nvar free ! mmsp-nep	(G3)
+H symm nvar nvar free ! mmsp-nei	(H3)
+I symm nvar nvar free ! mfsp-nep	(I3)
+J symm nvar nvar free ! mfsp-nei	(J3)
+K symm nvar nvar free ! mmc-mm		(K3)
+L symm nvar nvar free ! mmc-ff		(L3)
+M symm nvar nvar free ! mmc-os		(M3)
+N symm nvar nvar free ! mfc-mm		(N3)
+O symm nvar nvar free ! mfc-ff		(O3)
+P symm nvar nvar free ! mfc-os		(P3)
+Q symm nvar nvar free ! mzm-sp-sp	(Q3)
+R symm nvar nvar free ! mzf-sp-sp	(R3)
+End Matrices ;
+Begin Algebra ;
+S=A_C_C_D_D; !MZM co-twin spouse & avunc
+T=B_E_E_F_F; !MZF co-twin spouse & avunc
+!spouse-spouse, avunc & cousins
+!MZM spouses with their nephews and neices
+U= 
+ Q | G | G | H | H_
+ G | K | K | M | M_ 
+ G | K | K | M | M_
+ H | M | M | L | L_
+ H | M | M | L | L;
+!MZF
+V=
+ R | I | I | J | J_
+ I | N | N | P | P_
+ I | N | N | P | P_
+ J | P | P | O | O_
+ J | P | P | O | O;
+Z=
+C|F|D|E_
+I|H|J|G_
+Q|R|A|B_
+K|L|M|M_
+N|O|P|P;
+End Algebra;
+  Label Row Z avunc_mz avunc_mzsp mzsp mzm_co mzf_co
+  Label Col Z Mm Ff Mf Fm
+$st_all
+$st_av
+$st_co
+End
+
+GROUP4: Initalise placeholders and sumarise the model parameters
+!DZ Avuncular
+Calculation Ngroups=
+Begin Matrices;
+A symm nvar nvar free ! dzm-sp		(A4)
+B symm nvar nvar free ! dzf-sp		(B4)
+C symm nvar nvar free ! dm-nep		(C4)
+D symm nvar nvar free ! dm-nei		(D4)
+E symm nvar nvar free ! df-nep		(E4)
+F symm nvar nvar free ! df-nei		(F4)
+G symm nvar nvar free ! dmsp-nep	(G4)
+H symm nvar nvar free ! dmsp-nei	(H4)
+I symm nvar nvar free ! dfsp-nep	(I4)
+J symm nvar nvar free ! dfsp-nei	(J4)
+K symm nvar nvar free ! dmc-mm		(K4)
+L symm nvar nvar free ! dmc-ff		(L4)
+M symm nvar nvar free ! dmc-os		(M4)
+N symm nvar nvar free ! dfc-mm		(N4)
+O symm nvar nvar free ! dfc-ff		(O4)
+P symm nvar nvar free ! dfc-os		(P4)
+Q symm nvar nvar free ! dzm-sp-sp	(Q4)
+R symm nvar nvar free ! dzf-sp-sp	(R4)
+End Matrices
+Begin Algebra ;
+S=A_C_C_D_D; !DZM co-twin spouse & avunc
+T=B_E_E_F_F; !DZF co-twin spouse & avunc
+!spouse-spouse, avunc & cousins
+!DZM spouses with their nephews and neices
+U= 
+ Q | G | G | H | H_
+ G | K | K | M | M_ 
+ G | K | K | M | M_
+ H | M | M | L | L_
+ H | M | M | L | L;
+!DZF
+V=
+ R | I | I | J | J_
+ I | N | N | P | P_
+ I | N | N | P | P_
+ J | P | P | O | O_
+ J | P | P | O | O;
+Z=
+C|F|D|E_
+I|H|J|G_
+Q|R|A|B_
+K|L|M|M_
+N|O|P|P;
+End Algebra;
+  Label Row Z avunc_dz avunc_dzsp dzsp dzm_co dzf_co
+  Label Col Z Mm Ff Mf Fm
+$st_all
+$st_av
+$st_co
+End
+
+GROUP5: Initalise placeholders and sumarise the model parameters
+!DZ OS Avuncular
+Calculation Ngroups=
+Begin Matrices;
+A symm nvar nvar free ! dzo-mmsp	(A5)
+B symm nvar nvar free ! dzo-ffsp	(B5)
+C symm nvar nvar free ! dom-nep		(C5)
+D symm nvar nvar free ! dom-nei		(D5)
+E symm nvar nvar free ! dof-nep		(E5)
+F symm nvar nvar free ! dof-nei		(F5)
+G symm nvar nvar free ! domsp-nep	(G5)
+H symm nvar nvar free ! domsp-nei	(H5)
+I symm nvar nvar free ! dofsp-nep	(I5)
+J symm nvar nvar free ! dofsp-nei	(J5)
+K symm nvar nvar free ! doc-mm		(K5)
+L symm nvar nvar free ! doc-ff		(L5)
+M symm nvar nvar free ! doc-mf		(M5)
+R symm nvar nvar free ! doc-fm		(R5)
+N symm nvar nvar free ! dzo-sp-sp	(N5)
+!Sibling inlaws - non twin
+O symm nvar nvar free ! s-sp-m		(O5)
+P symm nvar nvar free ! s-sp-f		(P5)
+Q symm nvar nvar free ! s-sp-mf		(Q5)
+X symm nvar nvar free ! s-sp-fm		(X5)
+End Matrices ;
+Begin Algebra ;
+S=A_C_C_D_D; !DZ-OSM co-twin spouse & avunc
+T=B_E_E_F_F; !DZ-OSF co-twin spouse & avunc
+!spouse-spouse, avunc & cousins
+!MZM spouses with their nephews and neices
+U= 
+ N | G | G | H | H_
+ I | K | K | R | R_ 
+ I | K | K | R | R_
+ J | M | M | L | L_
+ J | M | M | L | L;
+V=  Q | Q | P | P ; ! spouse w sibs twin is male - spouse is female
+W=  O | O | X | X ; ! spouse w sibs twin is female - spouse is male
+Z=
+C|F|D|E_
+I|H|J|G_
+A|B|N|N_
+K|L|M|R_
+O|P|Q|X;
+End Algebra;
+  Label Row Z avunc_dzo avunc_dzosp dzosp dzom_co sp_sib
+  Label Col Z Mm Ff Mf Fm
+$st_all
+$st_av2
+$st_co2
+$st_inlaws
+End
+    
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Data groups___________________________________________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    
+GROUP6: MZM Data group 
+!Estimate the correlations
+Data NI=37
+Missing=-999
+Rec File =MZM
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select Fa Mo Tw1 Tw2 bro1 bro2 sis1 sis2 sp.tw1 son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 sp.tw2 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 ;
+!definition
+Begin Matrices; 
+A computed 8 8 = P1   !MZM Nuclear family
+B computed 5 2 = U2   !grandparents w female spouse and grand children
+C computed 5 1 = V1   !spouse father offspring
+D computed 5 1 = S3   !MZM co-twin spouse & avunc
+E computed 4 4 = V2   !non-twin sibling inlaws and avuncs spouse is female
+F computed 5 5 = Y1   !2nd nuclear fam mother brothers and sisters
+G computed 5 5 = U3   !spouse-spouse, twin avunc & cousins
+K computed 1 4 = V5
+P full nvar 1 free    !mean_m     
+Q full nvar 1 free    !mean_f     
+End Matrices;
+Begin Algebra;
+H=B|C|D|(K_E);
+I=B|D|C|(K_E);
+J=
+ A | H' | I' _
+ H | F  | G' _
+ I | G  | F ;
+End Algebra;
+!Means 
+!     mean_m mean_f mean_m mean_m mean_m mean_m mean_f mean_f
+Means   P  |   Q  |   P  |   P  |   P  |   P  |   Q  |   Q  |
+        Q  |   P  |   P  |   Q  |   Q  |
+        Q  |   P  |   P  |   Q  |   Q  ;
+Covariances J ;
+Option RS
+ $st_means        
+End
+
+GROUP7: MZF Data group 
+!Estimate the correlations
+Data NI=37
+Missing=-999
+Rec File =MZF
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select Fa Mo Tw1 Tw2 bro1 bro2 sis1 sis2 sp.tw1 son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 sp.tw2 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 ;
+!definition
+Begin Matrices; 
+A computed 8 8 = Q1   !MZF Nuclear family
+B computed 5 2 = T2   !grandparents w male spouse and grand children
+C computed 5 1 = W1   !spouse mother offspring
+D computed 5 1 = T3   !MZF co-twin spouse & avunc
+E computed 4 4 = W2   !non-twin sibling inlaws and avuncs spouse is male
+F computed 5 5 = X1   !2nd nuclear fam father brothers and sisters
+G computed 5 5 = V3   !spouse-spouse, twin avunc & cousins
+K computed 1 4 = W5
+P full nvar 1   $mean_m     
+Q full nvar 1   $mean_f     
+End Matrices;
+Begin Algebra;
+H=B|C|D|(K_E);
+I=B|D|C|(K_E);
+J=
+ A | H' | I' _
+ H | F  | G' _
+ I | G  | F ;
+End Algebra;
+!Means 
+!     mean_m mean_f mean_m mean_m mean_m mean_m mean_f mean_f
+Means   P  |   Q  |   Q  |   Q  |   P  |   P  |   Q  |   Q  |
+        P  |   P  |   P  |   Q  |   Q  |
+        P  |   P  |   P  |   Q  |   Q  ;
+Covariances J ;
+Option RS
+End
+    
+GROUP8: DZM Data group 
+!Estimate the correlations
+Data NI=37
+Missing=-999
+Rec File =DZM
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select Fa Mo Tw1 Tw2 bro1 bro2 sis1 sis2 sp.tw1 son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 sp.tw2 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 ;
+!definition
+Begin Matrices; 
+A computed 8 8 = R1   !DZM Nuclear family
+B computed 5 2 = U2   !grandparents w female spouse and grand children
+C computed 5 1 = V1   !spouse father offspring
+D computed 5 1 = S4   !DZM co-twin spouse & avunc
+E computed 4 4 = V2   !non-twin sibling inlaws and avuncs spouse is female
+F computed 5 5 = Y1   !2nd nuclear fam mother brothers and sisters
+G computed 5 5 = U4   !spouse-spouse, twin avunc & cousins
+K computed 1 4 = V5
+P full nvar 1   $mean_m     
+Q full nvar 1   $mean_f     
+End Matrices;
+Begin Algebra;
+H=B|C|D|(K_E);
+I=B|D|C|(K_E);
+J=
+ A | H' | I' _
+ H | F  | G' _
+ I | G  | F ;
+End Algebra;
+!Means 
+!     mean_m mean_f mean_m mean_m mean_m mean_m mean_f mean_f
+Means   P  |   Q  |   P  |   P  |   P  |   P  |   Q  |   Q  |
+        Q  |   P  |   P  |   Q  |   Q  |
+        Q  |   P  |   P  |   Q  |   Q  ;
+Covariances J ;
+Option RS
+End
+
+GROUP9: DZF Data group 
+!Estimate the correlations
+Data NI=37
+Missing=-999
+Rec File =DZF
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select Fa Mo Tw1 Tw2 bro1 bro2 sis1 sis2 sp.tw1 son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 sp.tw2 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 ;
+!definition
+Begin Matrices; 
+A computed 8 8 = S1   !DZF Nuclear family
+B computed 5 2 = T2   !grandparents w male spouse and grand children
+C computed 5 1 = W1   !spouse mother offspring
+D computed 5 1 = T4   !DZF co-twin spouse & avunc
+E computed 4 4 = W2   !non-twin sibling inlaws and avuncs spouse is male
+F computed 5 5 = X1   !2nd nuclear fam father brothers and sisters
+G computed 5 5 = V4   !spouse-spouse, twin avunc & cousins
+K computed 1 4 = W5
+P full nvar 1   $mean_m     
+Q full nvar 1   $mean_f     
+End Matrices;
+Begin Algebra;
+H=B|C|D|(K_E);
+I=B|D|C|(K_E);
+J=
+ A | H' | I' _
+ H | F  | G' _
+ I | G  | F ;
+End Algebra;
+!Means 
+!     mean_m mean_f mean_m mean_m mean_m mean_m mean_f mean_f
+Means   P  |   Q  |   Q  |   Q  |   P  |   P  |   Q  |   Q  |
+        P  |   P  |   P  |   Q  |   Q  |
+        P  |   P  |   P  |   Q  |   Q  ;
+Covariances J ;
+Option RS
+End
+
+
+GROUP10: DZFM Data group 
+!Estimate the correlations
+Data NI=37
+Missing=-999
+Rec File =DZOS
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select Fa Mo Tw1 Tw2 bro1 bro2 sis1 sis2 sp.tw1 son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 sp.tw2 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 ;
+!definition
+Begin Matrices; 
+A computed 8 8 = T1   !DZO Nuclear family
+!
+B computed 5 2 = T2   !grandparents w male spouse and grand children
+C computed 5 1 = W1   !spouse mother offspring
+D computed 5 1 = T5   !DZO co-twin spouse & avunc
+E computed 4 4 = W2   !non-twin sibling inlaws and avuncs spouse is male
+F computed 5 5 = X1   !2nd nuclear fam father brothers and sisters
+G computed 5 5 = U5   !spouse-spouse, twin avunc & cousins
+!
+H computed 5 2 = U2   !grandparents w female spouse and grand children
+I computed 5 1 = V1   !spouse father offspring
+J computed 5 1 = S5   !DZO co-twin spouse & avunc
+K computed 4 4 = V2   !non-twin sibling inlaws and avuncs spouse is female
+L computed 5 5 = Y1   !2nd nuclear fam mother brothers and sisters
+P full nvar 1   $mean_m     
+Q full nvar 1   $mean_f     
+R computed 1 4  =V5
+S computed 1 4  =W5
+End Matrices;
+Begin Algebra;
+N=B|C|D|(R_E);
+O=H|J|I|(S_K);
+T=
+ A | N' | O' _
+ N | F  | G'  _
+ O | G  | L ;
+End Algebra;
+!Means 
+!     mean_m mean_f mean_m mean_m mean_m mean_m mean_f mean_f
+Means   P  |   Q  |   Q  |   P  |   P  |   P  |   Q  |   Q  |
+        P  |   P  |   P  |   Q  |   Q  |
+        Q  |   P  |   P  |   Q  |   Q  ;
+Covariances T ;
+Option RS
+End
+
+Group 11: Sumary Group
+Calc
+Begin Matrices;
+A computed 6 4 =Z1
+B computed 5 4 =Z2
+C computed 5 4 =Z3
+D computed 5 4 =Z4
+E computed 5 4 =Z5
+End Matrices;
+Begin Algebra;
+F=A_B_C_D_E;
+End algebra;
+
+  Label Row F var spouse mztw dztw si pc gp_pat gp_mat gp_sp pat_av mat_av av_mz av_mzsp mzsp mzm_co mzf_co
+  av_dz av_dzsp dzsp dzm_co dzf_co av_dzo av_dzosp dzosp dzom_co sp_sib
+  Label Col F Mm Ff Mf Fm
+Option Jiggle 
+Option Format=(4(F6.3,1x)) 
+Option MxF=ObCov.EQ.txt
+!Option Thard=3
+
+EQ D 1 1 1 E 1 1 1 F 1 1 1 G 1 1 1    ! pc
+EQ H 1 1 1 I 1 1 1                             ! mz
+EQ J 1 1 1  K  1 1 1 L 1 1 1                ! dz
+EQ  M 1 1 1  N 1 1 1  O 1 1 1            ! sibs
+EQ A 2 1 1 B 2 1 1 C 2 1 1 D 2 1 1    ! gp-spouse
+EQ E 2 1 1 F 2 1 1 G 2 1 1 H 2 1 1  Q 2 1 1 R 2 1 1 S 2 1 1 X 2 1 1    ! gp-gchild
+EQ A 3 1 1 B 3 1 1                             ! mz-spouse
+EQ A 4 1 1 B 4 1 1 A 5 1 1 B 5 1 1     ! dz-spouse
+EQ O 5 1 1 P 5 1 1 Q 5 1 1 X 5 1 1     ! sib-spouse
+
+EQ Q 3 1 1 R 3 1 1                             ! mz spouse-mz spouse
+EQ Q 4 1 1 R 4 1 1 N 5 1 1                ! dz spouse-dz spouse
+
+EQ C 3 1 1 D 3 1 1 E 3 1 1 F 3 1 1                ! mzs - neph/neices
+EQ C 4 1 1 D 4 1 1 E 4 1 1 F 4 1 1  C 5 1 1 D 5 1 1 E 5 1 1 F 5 1 1               ! dzs - neph/neices
+EQ I 2 1 1 J 2 1 1 K 2 1 1 L 2 1 1  M 2 1 1 N 2 1 1 O 2 1 1 P 2 1 1               ! sibs - neph/neices
+
+EQ G 3 1 1 H 3 1 1 I 3 1 1 J 3 1 1            !spouse mz - neph/neices
+EQ G 4 1 1 H 4 1 1 I 4 1 1 J 4 1 1 G 5 1 1 H 5 1 1 I 5 1 1 J 5 1 1          !spouse dz - neph/neices
+
+EQ K 3 1 1 L 3 1 1 M 3 1 1 N 3 1 1 O 3 1 1 P 3 1 1                                                   !mz cousins
+EQ K 4 1 1 L 4 1 1 M 4 1 1 N 4 1 1 O 4 1 1 P 4 1 1 K 5 1 1 L 5 1 1 M 5 1 1 R 5 1 1   ! dz cousins
+
+End
+

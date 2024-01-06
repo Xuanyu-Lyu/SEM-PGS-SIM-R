@@ -1,0 +1,1425 @@
+!_______________________________________________________________________________
+! ET Model with sex differences
+!_______________________________________________________________________________
+! Model-fitting to raw data from extended twin-kinship families by ML
+! Version dated January 2008
+!_______________________________________________________________________________
+! Pleaspi send comments and questions to hmaes@vcu.edu
+! Hermine H. Maes
+!_______________________________________________________________________________
+!--------------------------!----------------!----!------------------------------
+
+#define ordinal 0          ! 1 for ordinal data; 0 for continuous data
+#define confint 0          ! 1 for confidence intervals; 0 for none
+#define outputs 0          ! 1 for extensive outputs; 0 for essential output
+#define indstat 0          ! 1 for individual statistics; 0 for none
+#define xmatrix 0          ! 1 for matrix of expected correlations; 0 for none
+#define sexdiff 1          ! 1 for sex differences; 0 for none
+
+! change filenames; use .ord for ordinal data, .rec for continuous data
+#define $datamzm MZM
+#define $datadzm DZM
+#define $datamzf MZF
+#define $datadzf DZF
+#define $datadzo DZOS
+! change filename for binary save file, indiv stats file and X matrix file
+#define $datamxs  ETsd.mxs
+#define $datastat ETsd.stat
+#define $dataXmat ETsd.Xmat
+#define $dataVmat ETsd.Zmat
+#define $formatX (31(4(F12.8,1x)/))  !29
+
+! variable details
+#define $missnum -999      ! missing variable code
+#define $nvar 37           ! number of variables in data file
+#define $allvar fam  v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15 v16 v17 v18  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18
+#define $selvar fam  v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15 v16 v17 v18
+#define $defvar fam
+#define $agevar a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18
+
+! parameter details for thresholds given ordinal data
+#define nthr 1             ! number of thresholds
+! adjust number of underscores depending on nthr-1
+#define $nthr
+! adjust values for highest depending on nthr
+#define $high 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+! adjust number of rows (2 spaces) depending on nthr; keep one row for continuous data
+! tw1 tw2 fa mo br br si si sp1 sp2 mc1 mc1 fc1 fc1 mc2 mc2 fc2 fc2
+#if sexdiff =1
+#define $meanpsmzm  101 101 101 301 101 101 301 301 301 301 101 101 301 301 101 101 301 301
+#define $meanpsdzm  101 101 101 301 101 101 301 301 301 301 101 101 301 301 101 101 301 301
+#define $meanpsmzf  301 301 101 301 101 101 301 301 101 101 101 101 301 301 101 101 301 301
+#define $meanpsdzf  301 301 101 301 101 101 301 301 101 101 101 101 301 301 101 101 301 301
+#define $meanpsdzo  101 301 101 301 101 101 301 301 301 101 101 101 301 301 101 101 301 301
+#else
+#define $meanpsmzm  101 101 101 101 101 101 101 101 101 101 101 101 101 101 101 101 101 101
+#define $meanpsdzm  101 101 101 101 101 101 101 101 101 101 101 101 101 101 101 101 101 101
+#define $meanpsmzf  101 101 101 101 101 101 101 101 101 101 101 101 101 101 101 101 101 101
+#define $meanpsdzf  101 101 101 101 101 101 101 101 101 101 101 101 101 101 101 101 101 101
+#define $meanpsdzo  101 101 101 101 101 101 101 101 101 101 101 101 101 101 101 101 101 101
+#endif
+!#define $meanpsmzm  101 101 103 104 105 105 106 106 107 107 109 109 110 110 109 109 110 110
+!#define $meanpsdzm  201 201 103 104 105 105 106 106 207 207 109 109 110 110 109 109 110 110
+!#define $meanpsmzf  301 301 103 104 105 105 106 106 307 307 109 109 110 110 109 109 110 110
+!#define $meanpsdzf  401 401 103 104 105 105 106 106 407 407 109 109 110 110 109 109 110 110
+!#define $meanpsdzo  501 502 103 104 105 105 106 106 507 508 109 109 110 110 109 109 110 110
+
+! start values for means, thresholds, variances, parameters
+#define $meansv -.2        ! start value for mean
+#define $incrsv .5         ! start value for increment (for ordinal data)
+#define $varsv 1           ! start value for variance (pm,pf)
+#define $parsvu 1          ! start value for parameters: one (q,u,rd,rs,rt)
+#define $parsvz 0          ! start value for parameters: zero (i,b,r,xm,xf,xmf,dm,df,sm,sf,tm,tf,m,n,o,p,acm,acf,bcm,bcf)
+#define $parsvh .7071      ! start value for parameters: 50%
+#define $parsvq .50        ! start value for parameters: 25%
+#define $parsvct .0        ! start value for parameter for cultural transmission
+#define $parsva .9         ! start value for A parameter
+#define $parsve 1          ! start value for E parameter
+
+! bounds for means, thresholds, variances, parameters
+#define $meanlb -2         ! lower bound for mean
+#define $meanub 2          ! upper bound for mean
+#define $incrlb .01        ! lower bound for increment [do not change]
+#define $incrub 5          ! upper bound for increment
+#define $varlbr -1         ! lower bound for correlation
+#define $varubr 1          ! upper bound for correlation
+#define $varlb .001        ! lower bound for variance
+#define $varlbz .0001      ! lower bound for variance (more precise)
+#define $varub 5           ! upper bound for variance, parameters
+#define $varubc 2          ! upper bound for variance, parameters (more precise)
+#define $varlbn -5         ! lower bound for parameters
+#define $varlbp .2         ! lower bound for e^2 (positive)
+#define $varlba -2         ! lower bound for parameters (more narrow for ct)
+#define $varuba 2          ! upper bound for parameters (more narrow for ct)
+
+!-------------------------------------------------------------------------------
+! DO NOT CHANGE ANYTHING BELOW
+!-------------------------------------------------------------------------------
+#NGroups 45
+
+!--------------------------!----------------!----!------------------------------
+#define nvar 1             ! number of variables
+#define nvarx2 2           ! number of variables x2
+#define nvarx3 3           ! number of variables x3
+#define nvarx18 18         ! number of variables in expected covariance matrices
+#define $nvm1 - - - - - - - - - - - - - - - - -
+#define maxs 2             ! number of siblings
+#define maxsm1 1           ! number of siblings minus 1
+
+!-------------------------------------------------------------------------------
+#define aspi 1
+#define asxi 2
+#define acted 3
+#define afpi 4
+#define qsxco 5
+#define otwin 6
+#define osibs 7
+#define okids 8
+#define ogpgk 9
+#define oavmz 10
+#define oavdz 11
+#define oavsi 12
+#define ocomz 13
+#define ocodz 14
+
+#define qrxi 15
+#define itwin 16
+#define isibs 17
+#define ikids 18
+#define igpgk 19
+#define iavmz 20
+#define iavdz 21
+#define iavsi 22
+#define icomd 23
+
+#define etec 24
+#define mzmec 25
+#define dzmec 26
+#define mzfec 27
+#define dzfec 28
+#define dzmfec 29
+
+#define etef 30
+#define mzmef 31
+#define dzmef 32
+#define mzfef 33
+#define dzfef 34
+#define dzmfef 35
+
+#define sums 36
+#define cors 37
+#define pars1 38
+#define pars2 39
+#define vars1 40
+#define vars2 41
+#define funn 42
+#define cons 43
+#define conf 44
+#define print 45
+
+!--------------------------!----------------!----!------------------------------
+Group aspi: Genotype-Phenotype + AC Covariance
+ Calculation
+ Begin Matrices;
+  A Low  nvar nvar Free	   ! male gender-common additive genetic paths 
+  B Low  nvar nvar Free	   ! male-specific additive genetic paths 
+  Q Symm nvar nvar Free	   ! additive genetic covariance 
+  U Symm nvar nvar Free    ! male-specific additive genetic covariance  
+  R Full nvar nvar Free    ! A-B covariance
+  S Full nvar nvar Free	   ! male A-C covariance
+  T Full nvar nvar Free	   ! male B-C covariance
+  M Low  nvar nvar Free	   ! female gender-common additive genetic paths
+  O Full nvar nvar Free	   ! female A-C covariance 
+  P Full nvar nvar Free	   ! female B-C covariance
+#if ordinal = 1
+  J Symm nvar nvar         ! within father covariance / male variance
+  G Symm nvar nvar         ! within mother covariance / female variance
+#else
+  J Symm nvar nvar Free	   ! within father covariance 
+  G Symm nvar nvar Free    ! within mother covariance 
+#endif
+  I Full nvar nvar Free	   ! assortment delta paths 
+  Z Zero nvar nvar         ! scalar, 0
+  C Iden nvar nvar         ! scalar, 1
+  H Full 1 1               ! scalar, .5
+ End Matrices;
+  Matrix H .5
+ Begin Algebra;
+  Y= (A|B|C);                               ! male latent factors
+  E= (Q|R|S)* Y';                           ! male A-P covariance
+  F= (R'|U|T)* Y';                          ! male B-P covariance
+  X= (M|Z|C);                               ! female latent factors
+  K= (Q|R|O)* X';                           ! female A-P covariance
+  L= (R'|U|P)* X';                          ! female B-P covariance
+  V= (S_T);                                 ! male AB-C covariance
+  W= (O_P);                                 ! female AB-C covariance
+  D= (S|T|O|P);                             ! male & female AB-C covariance
+ End Algebra;
+  Start $parsva  A aspi 1 1  M aspi 1 1 
+  Start $parsvu  Q aspi 1 1  U aspi 1 1
+  Start $parsvz  I aspi 1 1  B aspi 1 1  R aspi 1 1
+  Start $parsvz  S aspi 1 1  O aspi 1 1
+  Start $parsvz  T aspi 1 1  P aspi 1 1
+  Start $varsv  J aspi 1 1  G aspi 1 1
+ Option NoOutput
+End
+
+Group asxi: Genetic Covariance Sibs, also via Assortment
+ Calculation
+ Begin Matrices; = Group aspi
+  A Symm nvar nvar Free	   ! male common enviroment covariance
+  B Symm nvar nvar Free	   ! female common environment covariance
+  C Symm nvar nvar Free	   ! male-female common environment covariance
+ End Matrices;
+ Begin Algebra;
+  X= (Q |R_                                 ! MZ AB-AB covariance
+      R'|U);
+  Y= (H@X)+ (H@H@((E|K_                     ! DZ AB-AB covariance
+                   F|L)*(I'|Z_
+                         Z |I)*(K'|L'_
+                                E'|F')));
+  M= (X|V_V'|A);                            ! MZM/pm ABC-ABC covariance
+  N= (X|W_W'|B);                            ! MZF/pf ABC-ABC covariance
+  O= (Y|V_V'|A);                            ! DZM ABC-ABC covariance
+  P= (Y|W_W'|B);                            ! DZF ABC-ABC covariance
+  S= (Y|W_V'|C);                            ! DZO ABC-ABC covariance
+ End Algebra;
+ Option NoOutput
+End
+
+!--------------------------!----------------!----!------------------------------
+Group acted: Common, Twin, Unique Environment, Dominance / Phenotype Constraint
+ Constraint
+ Begin Matrices; = Group aspi !(H aspi)
+  K Low  nvar nvar Free    ! male non-parental shared environment paths
+  L Low  nvar nvar Free    ! female non-parental shared environment paths
+  Q Full nvar nvar Free    ! correlation between male and female sh env
+  E Low  nvar nvar Free    ! male special twin environment paths
+  F Low  nvar nvar Free    ! female special twin environment paths
+  R Full nvar nvar Free    ! correlation between male and female twin env
+  O Low  nvar nvar Free    ! male unique environment paths
+  P Low  nvar nvar Free    ! female unique environment paths
+  V Low  nvar nvar Free    ! male non-additive paths
+  W Low  nvar nvar Free    ! female non-additive paths
+  U Full nvar nvar Free    ! correlation between male and female dom
+  H Full 1 1 =H aspi       ! scalar .5
+  Y Computed =Y aspi                        ! male latent factors
+  X Computed =X aspi                        ! female latent factors
+  M Computed =M asxi                        ! pm ABC-ABC covariance
+  N Computed =N asxi                        ! pf ABC-ABC covariance
+ End Matrices;
+  Start $parsvz  V acted 1 1  W acted 1 1
+  Start $parsvz  K acted 1 1  L acted 1 1
+  Start $parsvz  E acted 1 1  F acted 1 1
+  Start $parsvu  U acted 1 1  Q acted 1 1  R acted 1 1
+  Start $parsve  O acted 1 1  P acted 1 1
+ Constraint J_G=
+   (Y*M* Y'+ V*V'+ K*K'+ E*E'+ O*O')          _  ! pvm
+   (X*N* X'+ W*W'+ L*L'+ F*F'+ P*P')          ;  ! pvf
+ Option NoOutput
+End
+
+!--------------------------!----------------!----!------------------------------
+Group afpi: Genetic and Cultural Transmission
+ Calculation
+ Begin Matrices; = Group aspi
+  M Full nvar nvar Free	   ! male maternal cultural transmission
+  P Full nvar nvar Free	   ! male paternal cultural transmission
+  N Full nvar nvar Free	   ! female maternal cultural transmission
+  O Full nvar nvar Free	   ! female paternal cultural transmission
+  A Symm nvar nvar =A asxi ! male environment variance
+  B Symm nvar nvar =B asxi ! female environment variance
+  C Symm nvar nvar =C asxi ! male-female environment variance
+!  S Full nvar nvar !Free  ! reduced genetic transmission
+  Z Zero nvar nvar         ! scalar, .5
+  T Iden nvar nvar         ! segregation variance, .5I
+ End Matrices;
+  Start $parsvz  M afpi 1 1  N afpi 1 1  O afpi 1 1  P afpi 1 1
+  Start $parsvz  A afpi 1 1  B afpi 1 1  C afpi 1 1
+ Option NoOutput
+End
+
+Group qsxco: A & F Variance and Covariance Constraints
+ Constraint
+ Begin Matrices; = Group afpi
+ End Matrices;
+ Begin Algebra;
+  S= Q_U_R_D'_A_B_C_J_G;                    ! values for constraints
+ End Algebra;
+ Constraint  Q_U_R_D'_A_B_C  =
+   (H@(Q+H@(E*I'*K'+K*I*E')+T))               _  ! aco
+   (H@(U+H@(F*I'*L'+L*I*F')+T))               _  ! bco
+   (H@(R+H@(E*I'*L'+K*I*F')))                 _  ! abco
+   (H@E*(P'+I'*G*M')+H@K*(M'+I*J*P'))         _  ! acmco
+   (H@F*(P'+I'*G*M')+H@L*(M'+I*J*P'))         _  ! bcmco
+   (H@E*(O'+I'*G*N')+H@K*(N'+I*J*O'))         _  ! acfco
+   (H@F*(O'+I'*G*N')+H@L*(N'+I*J*O'))         _  ! bcfco
+   (M*G*M'+P*J*P'+M*J*I'*G*P'+P*(J*I'*G)'*M') _  ! cmco
+   (N*G*N'+O*J*O'+N*J*I'*G*O'+O*(J*I'*G)'*N') _  ! cfco
+   (M*G*N'+P*J*O'+M*J*I'*G*O'+P*(J*I'*G)'*N') ;  ! cmfco
+ Option NoOutput
+End
+
+!--------------------------!----------------!----!------------------------------
+Group otwin: Twin Covariance
+ Calculation
+ Begin Matrices; = Group acted
+  M Computed =M asxi                        ! MZM ABC-ABC covariance
+  N Computed =N asxi                        ! MZF ABC-ABC covariance
+  O Computed =O asxi                        ! DZM ABC-ABC covariance
+  P Computed =P asxi                        ! DZF ABC-ABC covariance
+  S Computed =S asxi                        ! DZO ABC-ABC covariance
+ End Matrices;
+ Begin Algebra;
+  A= Y*M*Y'+ V*V'+ K*K'+ E*E';                   ! mzm
+  B= Y*O*Y'+ H@H@V*V'+ K*K'+ E*E';               ! dzm
+  C= X*N*X'+ W*W'+ L*L'+ F*F';                   ! mzf
+  D= X*P*X'+ H@H@W*W'+ L*L'+ F*F';               ! dzf
+  I= Y*S*X'+ H@H@V*U*W'+ K*Q*L'+ E*R*F';         ! dzmf
+ End Algebra;
+ Option NoOutput
+End
+
+Group osibs: Sibling Covariance
+ Calculation
+ Begin Matrices; = Group otwin
+ End Matrices;
+ Begin Algebra;
+  B= Y*O*Y'+ H@H@V*V'+ K*K';                     ! sim
+  D= X*P*X'+ H@H@W*W'+ L*L';                     ! sif
+  I= Y*S*X'+ H@H@V*U*W'+ K*Q*L';                 ! simf
+ End Algebra;
+ Option NoOutput
+End
+
+!--------------------------!----------------!----!------------------------------
+Group okids: Parent-Offspring Covariance
+ Calculation
+ Begin Matrices; = Group afpi
+  U Unit nvar nvar         ! unit
+ End Matrices;
+ Begin Algebra;
+  V= H@E|H@F|Z;                             ! Pm-ABCp-ABCo covariance (gt)
+  W= H@K|H@L|Z;                             ! Pf-ABCp-ABCo covariance
+  Q= I'*H@K|I'* H@L|P'+ I'*G*M';            ! Pm-ABCom covariance (ct+ ict +igt)
+  R= I*H@E|I* H@F|N'+ I*J*O';               ! Pf-ABCof covariance
+  S= I'*H@K|I'* H@L|O'+ I'*G*N';            ! Pm-ABCof covariance
+  T= I*H@E|I* H@F|M'+ I*J*P';               ! Pf-ABCom covariance
+  A= (W+(G*T))* Y';                              ! ms
+  B= (V+(J*Q))* Y';                              ! fs
+  C= (W+(G*R))* X';                              ! md
+  D= (V+(J*S))* X';                              ! fd
+ End Algebra;
+ Option NoOutput
+End
+
+Group ogpgk: Grandparent-Grandkids Covariance
+ Calculation
+ Begin Matrices; = Group okids
+  H Diag nvarx3 nvarx3
+ End Matrices;
+  Matrix H .5 .5 0
+ Begin Algebra;
+  A= (W+(G*T))* (H+(Y'*Q))* Y';                  ! gmps
+  B= (W+(G*R))* (H+(X'*T))* Y';                  ! gmms
+  C= (V+(J*Q))* (H+(Y'*Q))* Y';                  ! gfps
+  D= (V+(J*S))* (H+(X'*T))* Y';                  ! gfms
+  M= (W+(G*T))* (H+(Y'*S))* X';                  ! gmpd
+  N= (W+(G*R))* (H+(X'*R))* X';                  ! gmmd
+  O= (V+(J*Q))* (H+(Y'*S))* X';                  ! gfpd
+  P= (V+(J*S))* (H+(X'*R))* X';                  ! gfmd
+ End Algebra;
+ Option NoOutput
+End
+
+!--------------------------!----------------!----!------------------------------
+Group oavmz: Avuncular Covariance - related through MZ Twins
+ Calculation
+ Begin Matrices; = Group okids
+  V Computed =V aspi                        ! male AB-C covariance
+  W Computed =W aspi                        ! female AB-C covariance
+  K Computed =X asxi                        ! MZ AB-AB covariance
+  L Computed =Y asxi                        ! DZ AB-AB covariance
+  I Computed =A otwin                       ! mzm
+  J Computed =C otwin                       ! mzf
+ End Matrices;
+ Begin Algebra;
+  M= (K |(Z_Z)_ V'|Z)@H;                    ! MZ ABCuncle-ABCnn covariance
+  N= (K |(Z_Z)_ W'|Z)@H;                    ! MZ ABCaunt-ABCnn covariance
+  O= (L |(Z_Z)_ V'|Z)@H;                    ! DZ ABCuncle-ABCnn covariance
+  P= (L |(Z_Z)_ W'|Z)@H;                    ! DZ ABCaunt-ABCnn covariance
+  A= ((I*Q)+ (Y*M))* Y';                         ! unemzm
+  B= ((I*S)+ (Y*M))* X';                         ! unimzm
+  C= ((J*T)+ (X*N))* Y';                         ! anemzf
+  D= ((J*R)+ (X*N))* X';                         ! animzf
+ End Algebra;
+ Option NoOutput
+End
+
+Group oavdz: Avuncular Covariance - related through DZ Twins
+ Calculation
+ Begin Matrices; = Group oavmz
+  K Computed =B otwin                       ! dzm
+  L Computed =D otwin                       ! dzf
+  U Computed =I otwin                       ! dzo
+ End Matrices;
+ Begin Algebra;
+  A= ((K*Q)+ (Y*O))* Y';                         ! unedzm
+  B= ((K*S)+ (Y*O))* X';                         ! unidzm
+  C= ((L*T)+ (X*P))* Y';                         ! anedzf
+  D= ((L*R)+ (X*P))* X';                         ! anidzf
+  E= ((U*T)+ (Y*O))* Y';                         ! unedzmf
+  F= ((U*R)+ (Y*O))* X';                         ! unidzmf
+  G= ((U'*Q)+ (X*P))* Y';                        ! anedzfm
+  H= ((U'*S)+ (X*P))* X';                        ! anidzfm
+ End Algebra;
+ Option NoOutput
+End
+
+Group oavsi: Avuncular Covariance - related through Siblings
+ Calculation
+ Begin Matrices; = Group oavmz
+  K Computed =B osibs                        ! sim
+  L Computed =D osibs                        ! sif
+  U Computed =I osibs                        ! simf
+ End Matrices;
+ Begin Algebra;
+  A= ((K*Q)+ (Y*O))* Y';                         ! unesim
+  B= ((K*S)+ (Y*O))* X';                         ! unisim
+  C= ((L*T)+ (X*P))* Y';                         ! anesif
+  D= ((L*R)+ (X*P))* X';                         ! anisif
+  E= ((U*T)+ (Y*O))* Y';                         ! unesimf
+  F= ((U*R)+ (Y*O))* X';                         ! unisimf
+  G= ((U'*Q)+ (X*P))* Y';                        ! anesifm
+  H= ((U'*S)+ (X*P))* X';                        ! anisifm
+ End Algebra;
+ Option NoOutput
+End
+
+!--------------------------!----------------!----!------------------------------
+Group ocomz: Cousins Covariance - related through MZ Twins
+ Calculation
+ Begin Matrices; = Group oavmz
+ End Matrices;
+ Begin Algebra;
+  V= (H@K@H|(Z_Z)_ (Z|Z)|Z);                ! MZ ABCcousin-ABCco covariance
+  W= (H@L@H|(Z_Z)_ (Z|Z)|Z);                ! DZ ABCcousin-ABCco covariance
+  A= Y* ((Q'*I*Q)+ V+ (Q'*Y*M)+ (M'*Y'*Q))* Y';  ! commzm
+  B= X* ((S'*I*S)+ V+ (S'*Y*M)+ (M'*Y'*S))* X';  ! cofmzm
+  C= Y* ((Q'*I*S)+ V+ (Q'*Y*M)+ (M'*Y'*S))* X';  ! comfmzm
+  D= Y* ((T'*J*T)+ V+ (T'*X*N)+ (N'*X'*T))* Y';  ! commzf
+  E= X* ((R'*J*R)+ V+ (R'*X*N)+ (N'*X'*R))* X';  ! cofmzm
+  F= Y* ((T'*J*R)+ V+ (T'*X*N)+ (N'*X'*R))* X';  ! comfmzf
+ End Algebra;
+ Option NoOutput
+End
+
+Group ocodz: Cousins Covariance - related through DZ Twins
+ Calculation
+ Begin Matrices; = Group ocomz
+  K Computed =B otwin                       ! dzm
+  L Computed =D otwin                       ! dzf
+  U Computed =I otwin                       ! dzo
+ End Matrices;
+ Begin Algebra;
+  A= Y* ((Q'*K*Q)+ W+ (Q'*Y*O)+ (O'*Y'*Q))* Y';  ! comdzm
+  B= X* ((S'*K*S)+ W+ (S'*Y*O)+ (O'*Y'*S))* X';  ! cofdzm
+  C= Y* ((Q'*K*S)+ W+ (Q'*Y*O)+ (O'*Y'*S))* X';  ! comfdzm
+  D= Y* ((T'*L*T)+ W+ (T'*X*P)+ (P'*X'*T))* Y';  ! comdzf
+  E= X* ((R'*L*R)+ W+ (R'*X*P)+ (P'*X'*R))* X';  ! cofdzm
+  F= Y* ((T'*L*R)+ W+ (T'*X*P)+ (P'*X'*R))* X';  ! comfdzf
+  G= Y* ((Q'*U*T)+ W+ (Q'*Y*O)+ (P'*X'*T))* Y';  ! comdzmf
+  H= X* ((S'*U*R)+ W+ (S'*Y*O)+ (P'*X'*R))* X';  ! cofdzmf
+  I= Y* ((Q'*U*R)+ W+ (Q'*Y*O)+ (P'*X'*R))* X';  ! comfdzmf
+  J= X* ((S'*U*T)+ W+ (S'*Y*O)+ (P'*X'*T))* Y';  ! cofmdzmf
+ End Algebra;
+ Option NoOutput
+End
+
+!--------------------------!----------------!----!------------------------------
+Group qrxi
+ Calculation
+ Begin Matrices; != (I aspi J aspi G aspi)
+  Q Unit 1 maxs            ! unit vector
+  R Unit maxs maxs         ! unit matrix
+  X Full 1 1               ! dummy code
+  I Full nvar nvar =I aspi
+  J Symm nvar nvar =J aspi
+  G Symm nvar nvar =G aspi
+ End Matrices;
+  Matrix X 99
+ Begin Algebra;
+  A= J|G|X|X;                               ! variance
+ End Algebra;
+ Option NoOutput
+End
+
+!--------------------------!----------------!----!------------------------------
+Group itwin: Twins / Inlaws
+ Calculation
+ Begin Matrices; = Group qrxi
+  A Computed =A otwin                       ! mzm
+  B Computed =B otwin                       ! dzm
+  C Computed =C otwin                       ! mzf
+  D Computed =D otwin                       ! dzf
+  E Computed =I otwin                       ! dzmf
+ End Matrices;
+ Begin Algebra;
+  K= A*I'*G;                                     ! mzmw
+  L= B*I'*G;                                     ! dzmw
+  M= C*I*J;                                      ! mzfh
+  N= D*I*J;                                      ! dzfh
+  O= E*I*J;                                      ! dzmfh
+  P= E'*I'*G;                                    ! dzfmw
+  Q =G*I*A*I'*G;                                 ! wmzmw
+  R= G*I*B*I'*G;                                 ! wdzmw
+  S= J*I'*C*I*J;                                 ! hmzfh
+  T= J*I'*D*I*J;                                 ! hdzfh
+  U= G*I*E*I*J;                                  ! wdzmfh
+  W= A|C|X|X_ B|D|E|X;                      ! mz_dz twins
+  Y= X|X|M|K_ O|P|N|L;                      ! spouse w mz_dz cotwin
+  Z= S|Q|X|X_ T|R|U|X;                      ! spouse w sp mz_dz cotw
+ End Algebra;
+ Option NoOutput
+End
+
+Group isibs: Sibs / Inlaws
+ Calculation
+ Begin Matrices; = Group qrxi
+  F Computed =B osibs                       ! sim
+  K Computed =I osibs                       ! simf
+  L Computed =D osibs                       ! sif
+  D Iden maxs maxs         ! unit diagonal
+  H SDiag maxs maxs        ! unit subdiagonal
+ End Matrices;
+  Value 1 H 2 1 - H maxs maxsm1
+ Begin Algebra;
+  M= F*I'*G;                                     ! simw
+  N= K'*I'*G;                                    ! sifmw
+  O= K*I*J;                                      ! simfh
+  P= L*I*J;                                      ! sifh
+  S= D@J+H@F'+H'@F|R@K_R@K'|D@G+H@L'+H'@L;  ! br-si
+  T= Q@F|Q@K;                               ! male twin-sibs
+  U= Q@K|Q@L;                               ! female twin-sibs
+  V= Q'@M_Q'@N;                             ! sibs-wife of male tw
+  W= Q'@O_Q'@P;                             ! sibs-husb of fem tw
+  Y= F|L|K|X;                               ! siblings
+  Z= O|N|P|M;                               ! spouse w siblings
+ End Algebra
+ Option NoOutput
+End
+
+Group ikids: Parents / Inlaws
+ Calculation
+ Begin Matrices; = Group qrxi
+  M Computed =A okids                       ! ms
+  P Computed =B okids                       ! fs
+  N Computed =C okids                       ! md
+  O Computed =D okids                       ! fd
+ End Matrices;
+ Begin Algebra;
+  S= J*I'*G;                                     ! mf
+  A= P*I'*G;                                     ! fsw
+  B= M*I'*G;                                     ! msw
+  C= O*I*J;                                      ! fdh
+  D= N*I*J;                                      ! mdh
+  E= Q@P|Q@O;                               ! father-offspring
+  F= Q@M|Q@N;                               ! mother-offspring
+  H= P|M;                                   ! parent-son
+  T= O|N;                                   ! parent-daughter
+  K= A_B;                                   ! parent-dau in law
+  L= C_D;                                   ! parent-son in law
+  U= J|S_S'|G;                              ! spouse
+  V= E_F;                                   ! father_mother-offspr
+  W= X|X|S|X;                               ! spouses
+  Y= P|N|O|M;                               ! parents
+  Z= C|B|D|A;                               ! spouse w parents
+ End Algebra;
+ Option NoOutput
+End
+
+Group igpgk: Grandparents
+ Calculation
+ Begin Matrices; = Group qrxi
+  A Computed =C ogpgk                       ! gfps
+  B Computed =A ogpgk                       ! gmps
+  C Computed =O ogpgk                       ! gfpd
+  D Computed =M ogpgk                       ! gmpd
+  E Computed =D ogpgk                       ! gfms
+  F Computed =B ogpgk                       ! gmms
+  G Computed =P ogpgk                       ! gfmd
+  H Computed =N ogpgk                       ! gmmd
+ End Matrices;
+ Begin Algebra;
+  M= Q@A|Q@C_ Q@B|Q@D;                      ! gp-child paternal
+  N= Q@E|Q@G_ Q@F|Q@H;                      ! gp-child maternal
+  Z= A|D|C|B_ E|H|G|F;                      ! grandparents
+ End Algebra;
+ Option NoOutput
+End
+
+Group iavmz: Avuncular mz twins
+ Calculation
+ Begin Matrices; = Group qrxi
+  A Computed =A oavmz                       ! unemzm
+  B Computed =B oavmz                       ! unimzm
+  C Computed =C oavmz                       ! anemzf
+  D Computed =D oavmz                       ! animzf
+ End Matrices;
+ Begin Algebra;
+  E= G*I*A;                                      ! wunemzm
+  F= G*I*B;                                      ! wunimzm
+  K= J*I'*C;                                     ! hanemzf
+  L= J*I'*D;                                     ! hanimzf
+  M= Q@A|Q@B;                               ! uncles tru mzm
+  N= Q@C|Q@D;                               ! aunts tru mzf
+  O= Q@E|Q@F;                               ! aunts tru mzm
+  P= Q@K|Q@L;                               ! uncles tru mzf
+  Y= A|X|B|X_ X|D|X|C;                      ! avuncular mz twin
+  Z= X|F|X|E_ K|X|L|X;                      ! spouse w avunc mz twin
+ End Algebra;
+ Option NoOutput
+End
+
+Group iavdz: Avuncular twins Inlaws
+ Calculation
+ Begin Matrices; = Group qrxi
+  A Computed =A oavdz                       ! unedzm
+  B Computed =B oavdz                       ! unidzm
+  C Computed =C oavdz                       ! anedzf
+  D Computed =D oavdz                       ! anidzf
+  E Computed =E oavdz                       ! unedzmf
+  F Computed =F oavdz                       ! unidzmf
+  K Computed =G oavdz                       ! anedzfm
+  L Computed =H oavdz                       ! anidzfm
+ End Matrices;
+ Begin Algebra;
+  M= G*I*A;                                      ! wunedzm
+  N= G*I*B;                                      ! wunidzm
+  O= J*I'*C;                                     ! hanedzf
+  P= J*I'*D;                                     ! hanidzf
+  H= G*I*E;                                      ! wunedzmf
+  R= G*I*F;                                      ! wunidzmf
+  S= J*I'*K;                                     ! hanedzfm
+  T= J*I'*L;                                     ! hanidzfm
+  U= Q@M|Q@N;                               ! aunts tru dzm
+  V= Q@O|Q@P;                               ! uncles tru dzf
+  W= Q@H|Q@R;                               ! aunts tru dzmf
+  Y= Q@S|Q@T;                               ! uncles tru dzmf
+  Z= S|N|T|M_ O|R|P|H;                      ! spouse w avunc dz twin
+ End Algebra;
+ Option NoOutput
+End
+
+Group iavsi: Avuncular dz twins sibs
+ Calculation
+ Begin Matrices; = Group qrxi
+  A Computed =A oavsi                       ! unesim
+  B Computed =B oavsi                       ! unisim
+  C Computed =G oavsi                       ! anesifm
+  D Computed =H oavsi                       ! anisifm
+  E Computed =E oavsi                       ! unesimf
+  F Computed =F oavsi                       ! unisimf
+  G Computed =C oavsi                       ! anesif
+  H Computed =D oavsi                       ! anisif
+  I Computed =A oavdz                       ! unedzm
+  J Computed =B oavdz                       ! unidzm
+  K Computed =C oavdz                       ! anedzf
+  L Computed =D oavdz                       ! anidzf
+  M Computed =E oavdz                       ! unedzmf
+  N Computed =F oavdz                       ! unidzmf
+  O Computed =G oavdz                       ! anedzfm
+  P Computed =H oavdz                       ! anidzfm
+ End Matrices;
+ Begin Algebra;
+  S= R@A|R@B_ R@C|R@D;                      ! avunc tru sim
+  T= R@E|R@F_ R@G|R@H;                      ! avunc tru sif
+  U= Q@I|Q@J;                               ! uncles tru dzm
+  V= Q@K|Q@L;                               ! aunts tru dzf
+  W= Q@M|Q@N;                               ! uncles tru dzmf
+  X= Q@O|Q@P;                               ! aunts tru dzmf
+  Y= A|D|B|C_ E|H|F|G;                      ! avuncular sibs
+  Z= I|P|J|O_ M|L|N|K;                      ! avuncular dz twin
+ End Algebra;
+ Option NoOutput
+End
+
+Group icomd: Cousins
+ Calculation
+ Begin Matrices; = Group qrxi
+  A Computed =A ocomz                       ! commzm
+  B Computed =C ocomz                       ! comfmzm
+  C Computed =B ocomz                       ! cofmzm
+  D Computed =A ocodz                       ! comdzm
+  E Computed =C ocodz                       ! comfdzm
+  F Computed =B ocodz                       ! cofdzm
+  G Computed =D ocomz                       ! commzf
+  H Computed =F ocomz                       ! comfmzf
+  I Computed =E ocomz                       ! cofmzf
+  J Computed =D ocodz                       ! comdzf
+  K Computed =F ocodz                       ! comfdzf
+  L Computed =E ocodz                       ! cofdzf
+  M Computed =G ocodz                       ! comdzmf
+  N Computed =I ocodz                       ! comfdzmf
+  O Computed =J ocodz                       ! cofmdzmf
+  P Computed =H ocodz                       ! cofdzmf
+ End Matrices;
+ Begin Algebra;
+  S= R@A|R@B_ R@B|R@C;                      ! cousins mzm
+  T= R@D|R@E_ R@E|R@F;                      ! cousins dzm
+  U= R@G|R@H_ R@H|R@I;                      ! cousins mzf
+  V= R@J|R@K_ R@K|R@L;                      ! cousins dzf
+  W= R@M|R@N_ R@O|R@P;                      ! cousins dzmf
+  Y= A|C|B|X_G|I|H|X_D|F|E|X_J|L|K|X_M|P|N|O; ! cousins
+ End Algebra;
+ Option NoOutput
+End
+
+!--------------------------!----------------!----!------------------------------
+Group etec
+ Calculation
+ Begin Matrices;
+  J Symm nvar nvar =J aspi                  ! male variance
+  G Symm nvar nvar =G aspi                  ! female variance
+  S Computed =S ikids                       ! spouse
+  E Computed =E ikids                       ! father-offspring
+  F Computed =F ikids                       ! mother-offspring
+  H Computed =S isibs                       ! brothers-sisters
+  K Computed =K ikids                       ! parent-dau in law
+  L Computed =L ikids                       ! parent-son in law
+  M Computed =V isibs                       ! sibs-wife of male tw
+  N Computed =W isibs                       ! sibs-husb of fem tw
+  O Computed =M igpgk                       ! gp-child paternal
+  P Computed =N igpgk                       ! gp-child maternal
+  Q Computed =S iavsi                       ! avunc tru sim
+  R Computed =T iavsi                       ! avunc tru sif
+  A Computed =H ikids                       ! parent-son
+  B Computed =T ikids                       ! parent-dau
+  C Computed =T isibs                       ! male twin-sibs
+  D Computed =U isibs                       ! female twin-sibs
+  U Computed =U ikids                       ! spouse
+  V Computed =V ikids                       ! father_mother-offspr
+ End Matrices;
+ Begin Algebra;
+  X= A|C;                                   ! parent-son sibs
+  Y= B|D;                                   ! parent-dau sibs
+  Z= U|V_V'|H;                              ! spouse par-offspr sibs
+ End Algebra;
+ Option NoOutput
+End
+
+!--------------------------!----------------!----!------------------------------
+Group mzmec: Male MZ Twins
+ Calculation
+ Begin Matrices; = Group etec
+  A Computed =M iavmz                       ! uncles tru mzm
+  C Computed =O iavmz                       ! aunts tru mzm
+  I Computed =S icomd                       ! cousins tru mzm
+  T Computed =A otwin                       ! mzm
+  V Computed =K itwin                       ! mzmw
+  W Computed =Q itwin                       ! wmzmw
+ End Matrices;
+ Compute
+  J |T |X    |S |V |E |A_
+  T'|J |X    |V |S |A |E_
+  X'|X'|Z   |(K |K |O |O_
+              M |M |Q |Q)_
+  S'|V'|K'|M'|G |W |F |C_
+  V'|S'|K'|M'|W'|G |C |F_
+  E'|A'|O'|Q'|F'|C'|H |I_
+  A'|E'|O'|Q'|C'|F'|I'|H;
+ Option NoOutput
+End
+
+Group dzmec: Male DZ Twins
+ Calculation
+ Begin Matrices; = Group etec
+  A Computed =U iavsi                       ! uncles tru dzm
+  C Computed =U iavdz                       ! aunts tru dzm
+  I Computed =T icomd                       ! cousins tru dzm
+  T Computed =B otwin                       ! dzm
+  V Computed =L itwin                       ! dzmw
+  W Computed =R itwin                       ! wdzmw
+ End Matrices;
+ Compute
+  J |T |X    |S |V |E |A_
+  T'|J |X    |V |S |A |E_
+  X'|X'|Z   |(K |K |O |O_
+              M |M |Q |Q)_
+  S'|V'|K'|M'|G |W |F |C_
+  V'|S'|K'|M'|W'|G |C |F_
+  E'|A'|O'|Q'|F'|C'|H |I_
+  A'|E'|O'|Q'|C'|F'|I'|H;
+ Option NoOutput
+End
+
+Group mzfec: Female MZ Twins
+ Calculation
+ Begin Matrices; = Group etec
+  B Computed =N iavmz                       ! aunts tru mzf
+  D Computed =P iavmz                       ! uncles tru mzf
+  I Computed =U icomd                       ! cousins tru mzm
+  T Computed =C otwin                       ! mzf
+  V Computed =M itwin                       ! mzfh
+  W Computed =S itwin                       ! hmzfh
+ End Matrices;
+ Compute
+  G |T |Y    |S |V |F |B_
+  T'|G |Y    |V |S |B |F_
+  Y'|Y'|Z   |(L |L |P |P_
+              N |N |R |R)_
+  S'|V'|L'|N'|J |W |E |D_
+  V'|S'|L'|N'|W'|J |D |E_
+  F'|B'|P'|R'|E'|D'|H |I_
+  B'|F'|P'|R'|D'|E'|I'|H;
+ Option NoOutput
+End
+
+Group dzfec: Female DZ Twins
+ Calculation
+ Begin Matrices; = Group etec
+  B Computed =V iavsi                       ! aunts tru dzf
+  D Computed =V iavdz                       ! uncles tru dzf
+  I Computed =V icomd                       ! cousins tru dzf
+  T Computed =D otwin                       ! dzf
+  V Computed =N itwin                       ! dzfh
+  W Computed =T itwin                       ! hdzfh
+ End Matrices;
+ Compute
+  G |T |Y    |S |V |F |B_
+  T'|G |Y    |V |S |B |F_
+  Y'|Y'|Z   |(L |L |P |P_
+              N |N |R |R)_
+  S'|V'|L'|N'|J |W |E |D_
+  V'|S'|L'|N'|W'|J |D |E_
+  F'|B'|P'|R'|E'|D'|H |I_
+  B'|F'|P'|R'|D'|E'|I'|H;
+ Option NoOutput
+End
+
+Group dzmfec: Male-Fem DZ Twins
+ Calculation
+ Begin Matrices; = Group etec
+  A Computed =W iavsi                       ! uncles tru dzmf
+  B Computed =X iavsi                       ! aunts tru dzmf
+  C Computed =W iavdz                       ! aunts tru dzmf
+  D Computed =Y iavdz                       ! uncles tru dzmf
+  I Computed =W icomd                       ! cousins tru dzmf
+  T Computed =I otwin                       ! dzmf
+  V Computed =O itwin                       ! dzmfh
+  U Computed =P itwin                       ! dzfmw
+  W Computed =U itwin                       ! wdzmfh
+ End Matrices;
+ Compute
+  J |T |X    |S |V |E |A_
+  T'|G |Y    |U |S |B |F_
+  X'|Y'|Z'  |(K |L |O |P_
+              M |N |Q |R)_
+  S'|U'|K'|M'|G |W |F |C_
+  V'|S'|L'|N'|W'|J |D |E_
+  E'|B'|O'|Q'|F'|D'|H |I_
+  A'|F'|P'|R'|C'|E'|I'|H;
+ Option NoOutput
+End
+
+!J
+!TG
+!XYZ
+!SUKMG
+!VSLNWJ
+!EBOQFDH
+!AFPRCEIH
+
+!--------------------------!----------------!----!------------------------------
+Group etef
+ Calculation
+ Begin Matrices;
+  I Lower nthr nthr        ! unit lower triangular
+  E Full 1 1 !Free         ! age regression for males
+  F Full 1 1 !Free         ! age regression for females
+ End Matrices;
+  Value 1 I 1 1 to I nthr nthr
+ Begin Algebra;
+  R=(E|E|E|F|E|E|F|F|F|F|E|E|F|F|E|E|F|F);  ! male twins
+  S=(F|F|E|F|E|E|F|F|E|E|E|E|F|F|E|E|F|F);  ! female twins
+  T=(E|F|E|F|E|E|F|F|F|E|E|E|F|F|E|E|F|F);  ! os (mf) twins
+  X=(E|F);
+ End Algebra;
+ Option NoOutput
+End
+
+!--------------------------!----------------!----!------------------------------
+Group mzmef: Male MZ Twins and Extended Family
+ Data Ninput=$nvar
+ Missing=$missnum
+  Labels $allvar
+#if ordinal = 1
+  Ordinal File=$datamzm
+#else
+  Rectangular File=$datamzm
+#endif
+  Select $selvar ;
+  Definition $defvar ;
+!  Highest $high ;
+ Begin Matrices; = Group etef
+  V Symm nvarx18 nvarx18 =%E mzmec
+  M Full nthr nvarx18
+  N Full 1 nvarx18
+ End Matrices;
+  Specify M  $meanpsmzm
+!  Specify N  $agevar
+  Start $meansv  M 1 1 to  M 1 nvarx18
+#if nthr > 1
+  Start $incrsv  M 2 1 to  M nthr nvarx18
+  Bound $incrlb  $incrub  M 2 1 to  M nthr nvarx18
+#endif
+ Means/Thresholds I*M +R.N;
+ Covariance V;
+ Option NoOutput !RSiduals
+End
+
+Group dzmef: Male DZ Twins and Extended Family
+ Data Ninput=$nvar
+ Missing=$missnum
+  Labels $allvar
+#if ordinal = 1
+  Ordinal File=$datadzm
+#else
+  Rectangular File=$datadzm
+#endif
+  Select $selvar ;
+  Definition $defvar ;
+!  Highest $high ;
+ Begin Matrices; = Group etef
+  V Symm nvarx18 nvarx18 =%E dzmec
+  M Full nthr nvarx18
+  N Full 1 nvarx18
+ End Matrices;
+  Specify M  $meanpsdzm
+!  Specify N  $agevar
+  Value 1 I 1 1 to I nthr nthr
+  Start $meansv  M 1 1 to  M 1 nvarx18
+#if nthr > 1
+  Start $incrsv  M 2 1 to  M nthr nvarx18
+  Bound $incrlb  $incrub  M 2 1 to  M nthr nvarx18
+#endif
+ Means/Thresholds I*M +R.N;
+ Covariance V;
+ Option NoOutput !RSiduals
+End
+
+Group mzfef: Female MZ Twins and Extended Family
+ Data Ninput=$nvar
+ Missing=$missnum
+  Labels $allvar
+#if ordinal = 1
+  Ordinal File=$datamzf
+#else
+  Rectangular File=$datamzf
+#endif
+  Select $selvar ;
+  Definition $defvar ;
+!  Highest $high ;
+ Begin Matrices; = Group etef
+  V Symm nvarx18 nvarx18 =%E mzfec
+  M Full nthr nvarx18
+  N Full 1 nvarx18
+ End Matrices;
+  Specify M  $meanpsmzf
+!  Specify N  $agevar
+  Start $meansv  M 1 1 to  M 1 nvarx18
+#if nthr > 1
+  Start $incrsv  M 2 1 to  M nthr nvarx18
+  Bound $incrlb  $incrub  M 2 1 to  M nthr nvarx18
+#endif
+ Means/Thresholds I*M +S.N;
+ Covariance V;
+ Option NoOutput !RSiduals
+End
+
+Group dzfef: Female DZ Twins and Extended Family
+ Data Ninput=$nvar
+ Missing=$missnum
+  Labels $allvar
+#if ordinal = 1
+  Ordinal File=$datadzf
+#else
+  Rectangular File=$datadzf
+#endif
+  Select $selvar ;
+  Definition $defvar ;
+!  Highest $high ;
+ Begin Matrices; = Group etef
+  V Symm nvarx18 nvarx18 =%E dzfec
+  M Full nthr nvarx18
+  N Full 1 nvarx18
+ End Matrices;
+  Specify M  $meanpsdzf
+!  Specify N  $agevar
+  Start $meansv  M 1 1 to  M 1 nvarx18
+#if nthr > 1
+  Start $incrsv  M 2 1 to  M nthr nvarx18
+  Bound $incrlb  $incrub  M 2 1 to  M nthr nvarx18
+#endif
+ Means/Thresholds I*M +S.N;
+ Covariance V;
+ Option NoOutput !RSiduals
+End
+
+Group dzmfef: Male MZ Twins and Extended Family
+ Data Ninput=$nvar
+ Missing=$missnum
+  Labels $allvar
+#if ordinal = 1
+  Ordinal File=$datadzo
+#else
+  Rectangular File=$datadzo
+#endif
+  Select $selvar ;
+  Definition $defvar ;
+!  Highest $high ;
+ Begin Matrices; = Group etef
+  V Symm nvarx18 nvarx18 =%E dzmfec
+  M Full nthr nvarx18
+  N Full 1 nvarx18
+ End Matrices;
+  Specify M  $meanpsdzo
+!  Specify N  $agevar
+  Start $meansv  M 1 1 to  M 1 nvarx18
+#if nthr > 1
+  Start $incrsv  M 2 1 to  M nthr nvarx18
+  Bound $incrlb  $incrub  M 2 1 to  M nthr nvarx18
+#endif
+ Means/Thresholds I*M +T.N;
+ Covariance V;
+ Option NoOutput !RSiduals
+End
+
+!--------------------------!----------------!----!------------------------------
+Group sums
+ Calculation
+ Begin Matrices;
+  A Full 1 nvarx18 =M mzmef                 ! MZM means
+  B Full 1 nvarx18 =M dzmef                 ! DZM means
+  C Full 1 nvarx18 =M mzfef                 ! MZF means
+  D Full 1 nvarx18 =M dzfef                 ! DZF means
+  E Full 1 nvarx18 =M dzmfef                ! DZMF means
+  K Symm nvarx18 nvarx18 =%E mzmec          ! MZM expected covariances
+  L Symm nvarx18 nvarx18 =%E dzmec          ! DZM expected covariances
+  M Symm nvarx18 nvarx18 =%E mzfec          ! MZF expected covariances
+  N Symm nvarx18 nvarx18 =%E dzfec          ! DZF expected covariances
+  O Symm nvarx18 nvarx18 =%E dzmfec         ! DZMF expected covariances
+  I Iden nvarx18 nvarx18
+ End Matrices;
+ Begin Algebra;
+  T= A_B_C_D_E;                             ! means
+  V= K_L_M_N_O;                             ! covariances
+  R= (\sqrt(I.K)~)*K*(\sqrt(I.K)~)_         ! correlations
+     (\sqrt(I.L)~)*L*(\sqrt(I.L)~)_
+     (\sqrt(I.M)~)*M*(\sqrt(I.M)~)_
+     (\sqrt(I.N)~)*N*(\sqrt(I.N)~)_
+     (\sqrt(I.O)~)*O*(\sqrt(I.O)~);
+ End Algebra;
+  Bound $meanlb  $meanub  M mzmef 1 1 to M mzmef 1 nvarx18
+  Bound $meanlb  $meanub  M dzmef 1 1 to M dzmef 1 nvarx18
+  Bound $meanlb  $meanub  M mzfef 1 1 to M mzfef 1 nvarx18
+  Bound $meanlb  $meanub  M dzfef 1 1 to M dzfef 1 nvarx18
+  Bound $meanlb  $meanub  M dzmfef 1 1 to M dzmfef 1 nvarx18
+! Option NoOutput
+End
+
+Group cors
+ Calculation
+ Begin Matrices;
+  A Computed =W itwin                       ! mz twins_dz twins
+  B Computed =Y isibs                       ! siblings
+  C Computed =Y ikids                       ! parent-child
+  D Computed =Z igpgk                       ! grandparents
+  E Computed =Y iavmz                       ! avuncular mz twin
+  F Computed =Z iavsi                       ! avuncular dz twin
+  G Computed =Y iavsi                       ! avuncular sib
+  H Computed =Y icomd                       ! cousins
+  I Computed =W ikids                       ! spouse
+  J Computed =Y itwin                       ! spouse w mz_dz cotwin
+  K Computed =Z isibs                       ! spouse w sib of twin
+  L Computed =Z ikids                       ! spouse w parent of twin
+  M Computed =Z itwin                       ! spouse w spouse of mz_dz cotwin
+  N Computed =Z iavmz                       ! affine avuncular mz twin
+  O Computed =Z iavdz                       ! affine avuncular dz twin
+  V Computed =A qrxi                        ! variance
+  P Symm nvar nvar =J aspi                  ! mvar
+  Q Computed =A otwin                       ! mzm
+  R Computed =B otwin                       ! dzm
+  S Computed =B osibs                       ! sim
+  T Computed =A okids                       ! fs
+  U Computed =A oavmz                       ! unemzm
+  W Computed =A ocomz                       ! commzm
+  Z Computed =S ikids                       ! spouse
+ End Matrices;
+ Begin Algebra;
+  X= (V_A_B_C_D_E_F_G_H_I_J_K_L_M_N_O);     ! covariances/correlations
+  Y= (P_Q_R_S_T_U_W_Z);                     ! male covariances/correlations
+ End Algebra;
+ Option NoOutput
+End
+
+!--------------------------!----------------!----!------------------------------
+Group pars1: Print parameter estimates
+ Calculation
+ Begin Matrices;
+  A Low  nvar nvar =A aspi  ! male gender-common additive genetic paths
+  B Low  nvar nvar =B aspi  ! male-specific additive genetic paths
+  M Low  nvar nvar =M aspi  ! female gender-common additive genetic paths
+  V Low  nvar nvar =V acted ! male non-additive paths
+  W Low  nvar nvar =W acted ! female non-additive paths
+  C Low  nvar nvar =O acted ! male specific environment paths
+  N Low  nvar nvar =P acted ! female specific environment paths
+  K Low  nvar nvar =K acted ! male common environment paths
+  L Low  nvar nvar =L acted ! female common environment paths
+  E Low  nvar nvar =E acted ! male special twin environment
+  F Low  nvar nvar =F acted ! female special twin environment
+  Q Symm nvar nvar =Q aspi  ! gender-common additive genetic A covariance
+  U Symm nvar nvar =U aspi  ! male-specific additive genetic B covariance
+  X Symm nvar nvar =A afpi  ! male common environment C covariance
+  Y Symm nvar nvar =B afpi  ! female common environment C covariance
+  Z Symm nvar nvar =C afpi  ! male-female common environment C covariance
+  R Full nvar nvar =R aspi  ! A-B covariance
+  S Full nvar nvar =S aspi  ! male A-C covariance
+  T Full nvar nvar =T aspi  ! male B-C covariance
+  O Full nvar nvar =O aspi  ! female A-C covariance
+  D Full 1 1                ! dummy
+ End Matrices;
+  Matrix D 99
+ Begin Algebra;
+  J= A*S+S'*A';                             ! male AF covariance
+  P= B*T+T'*B';                             ! male BF covariance
+  G= M*O+O'*M';                             ! female AF covariance
+  H= A*R*B'+B*R'*A';                        ! AB covariance
+  I= D|D_A|M_B|D_V|W_C|N_K|L_E|F;           ! xABDECT m|f parameters
+ End Algebra;
+! Option NoOutput
+End
+
+Group pars2: Print parameter estimates
+ Calculation
+ Begin Matrices;
+  G Symm nvar nvar =G afpi  ! within mother covariance
+  J Symm nvar nvar =J afpi  ! within father covariance
+  I Full nvar nvar =I aspi  ! assortment delta paths
+  M Full nvar nvar =M afpi  ! male maternal cultural transmission
+  N Full nvar nvar =N afpi  ! female maternal cultural transmission
+  P Full nvar nvar =P afpi  ! male paternal cultural transmission
+  O Full nvar nvar =O afpi  ! female paternal cultural transmission
+  S Full nvar nvar =S aspi  ! male A-C covariance
+  T Full nvar nvar =T aspi  ! male B-C covariance
+  V Full nvar nvar =O aspi  ! female A-C covariance
+  W Full nvar nvar =P aspi  ! female B-C covariance
+  Q Full nvar nvar =Q acted ! correlation male female common environment
+  U Full nvar nvar =U acted ! correlation male and female dominance
+  R Full nvar nvar =R acted ! correlation male and female special twin env
+  B Full nvar nvar =R aspi  ! A-B covariance
+  D Full 1 1                ! dummy
+  L Full 1 1                !
+  A Computed =I pars1                       ! xABDECT m|f parameters 
+  X Computed =S ikids                       ! spouse correlation
+  H Full 1 2 Free           ! means
+ End Matrices;
+  Matrix D 99
+  Matrix L .25
+  Equate M mzmef 1 1 H 1 1
+  Equate M mzfef 1 1 H 1 2
+ Begin Algebra;
+  C= D_I_D_D_U_D_Q_R_D_D_D_D;               ! xIxxDxCTxxxx mf parameters
+  E= P|O_ M|N;                              ! ct parameters
+  F= S|V_ T|W;                              ! AB_C parameters
+  K= ((J|G)_A_E_F)|C;                       ! PIABDECTFFSS m|f|mf parameters
+  Y= ((J|G)_A_(P|N)_(H)_(B|B)_F)|(d_I_d_d_d_d_d_d_O_d_d_d_d)|(d_X_d_d_d_d_d_d_M_d_d_d_d); 
+  Z= (d_d_d_L@U_Q_R_d_d_d_  d_d_d_d_d_d_d_d_d);
+ End Algebra;
+  Bound $varlb $varubc Q aspi 1 1 to Q aspi nvar nvar  U aspi 1 1 to U aspi nvar nvar
+  Bound $varlbn $varub A aspi 1 1 to A aspi nvar nvar
+  Bound $varlbn $varub G aspi 1 1 to G aspi nvar nvar  J aspi 1 1 to J aspi nvar nvar
+  Bound $varlbn $varub B aspi 1 1 to B aspi nvar nvar
+  Bound $varlbn $varub R aspi 1 1 to R aspi nvar nvar
+  Bound $varlbn $varub S aspi 1 1 to S aspi nvar nvar  T aspi 1 1 to T aspi nvar nvar
+  Bound $varlbn $varub O aspi 1 1 to O aspi nvar nvar  P aspi 1 1 to P aspi nvar nvar
+  Bound $varlba $varuba I aspi 1 1 to I aspi nvar nvar
+  Bound $varlba $varuba M afpi 1 1 to M afpi nvar nvar
+  Bound $varlba $varuba O afpi 1 1 to O afpi nvar nvar  P afpi 1 1 to P afpi nvar nvar
+  Bound $varlbr $varubr Q acted 1 1 to Q acted nvar nvar
+  Bound $varlbr $varubr R acted 1 1 to R acted nvar nvar U acted 1 1 to U acted nvar nvar
+! Option NoOutput
+End
+
+!--------------------------!----------------!----!------------------------------
+Group vars1: Print variance components
+ Calculation
+ Begin Matrices; = Group pars1
+  D Zero 1 1
+ Begin Algebra;
+  I= A*Q*A'+ B*U*B'+H_ V*V'_ C*C'_ K*K'+ E*E'+ X_ J+P;
+  O= M*Q*M'          _ W*W'_ N*N'_ L*L'+ F*F'+ Y_ G;
+  R= A*Q*A'-A*A'+B*U*B'-B*B'_ A*A'_ B*B'+H_ V*V'_ C*C'_ K*K'_ E*E'_ X_ D_ J_ P;
+  S= M*Q*M'-M*M'            _ M*M'_ D     _ W*W'_ N*N'_ L*L'_ F*F'_ Y_ D_ G_ D;
+  T= A*Q*A'_ B*U*B'_ A*Q*A'+B*U*B'+H_ V*V'_ K*K'_  E*E'_ X_ C*C'_ J+P;
+  Z= M*Q*M'_ D     _ M*Q*M'         _ W*W'_ L*L'_  F*F'_ Y_ N*N'_ G;
+ End Algebra;
+!------------------------------------------------------------
+!  A*Q*A' = A*A'+ A*(Q-1)*A'  !  B*U*B' = B*B'+ B*(U-1)*B'  
+!  M*Q*M' = M*M'+ M*(Q-1)*M'
+!------------------------------------------------------------
+! Option NoOutput
+End
+
+Group vars2: Print variance components
+ Calculation
+ Begin Matrices;
+  G Symm nvar nvar =G aspi ! within mother covariance
+  J Symm nvar nvar =J aspi ! within father covariance
+  S Computed =J pars1                       ! male AF covariance
+  T Computed =P pars1                       ! male BF covariance
+  O Computed =G pars1                       ! female AF covariance
+  P Computed =K pars2                       ! PIABDECTFFSS parameters m|f|mf
+  Q Computed =Y pars2                       ! cascade parameters
+  R Computed =Z pars2                       ! cascade variances mf|fm
+  N Iden 1 1                                ! unit
+  A Computed =I vars1                       ! male ADECS variance components
+  B Computed =O vars1                       ! female ADECS variance components
+  C Computed =R vars1                       ! male IABDECTFxSS variances
+  D Computed =S vars1                       ! female IAxDECTFxSx variances
+  E Computed =T vars1                       ! cascade variances m
+  F Computed =Z vars1                       ! cascade variances f
+  X Full 11 1
+  Y Full 11 1
+  W Full 9 1
+ End Matrices;
+  Matrix X 0 0 0 0 0 0 0 0 99 0 99
+  Matrix Y 0 0 99 0 0 0 0 0 99 0 99
+  Matrix W 0 99 0 0 0 0 0 0 0
+ Begin Algebra;  
+  H= J-(S+T);                               ! male variance minus ABF covariance
+  I= G-O;                                   ! female variance minus AF covariance
+  K= A|B|H~@A|I~@B;                         ! ADECS variances & st vars m|f|m|f
+  L= (H_(C+X))|(I_(D+Y))|(N_(H~@C+X))|(N_(I~@D+Y)); ! variances & st vars m|f|m|f
+  M= (E|(F+W))_(J~@E|((G~@F)+W));           ! cascade variances & st vars m|f|m|f
+  U= P|L;                                   ! parameters & st variances
+  V= Q_(M|R|R);                             ! cascade parameters & st vars
+ End Algebra;
+ Option NoOutput
+End
+
+!--------------------------!----------------!----!------------------------------
+Group funn
+ Calculation
+ Begin Matrices;
+  A Full nvar nvar =%F mzmef                ! MZM function value
+  B Full nvar nvar =%F dzmef                ! DZM function value
+  C Full nvar nvar =%F mzfef                ! MZF function value
+  D Full nvar nvar =%F dzfef                ! DZF function value
+  E Full nvar nvar =%F dzmfef               ! DZMF function value
+ End Matrices;
+ Begin Algebra;
+  P= (A_B_C_D_E);
+ End Algebra;
+ Option NoOutput
+End
+
+Group cons: Print constrained group expected matrices
+ Calculation
+ Begin Matrices;
+  A Full 10 nvar =%E qsxco                  ! covariance constraints
+  B Full 2 nvar =%E acted                   ! phenotypic variance constraints
+  S Computed =S qsxco                       ! values for constraints
+ End Matrices;
+ Begin Algebra;
+  Q= (A_B)|S;                               ! constraint values| actual values
+ End Algebra;
+ Option NoOutput
+End
+
+!--------------------------!----------------!----!------------------------------
+Group conf
+ Calculation
+ Begin Matrices;
+  T Computed =T sums                        ! expected means
+  R Computed =R sums                        ! expected correlations
+  V Computed =V sums                        ! expected covariances
+ End Matrices;
+  Labels Row T mzm  $nthr  dzm  $nthr  mzf  $nthr  dzf  $nthr  dzo  $nthr 
+  Labels Col T tw1 tw2 fa mo br br si si sp1 sp2 mc1 mc1 fc1 fc1 mc2 mc2 fc2 fc2
+  Labels Row R mzm  $nvm1  dzm  $nvm1  mzf  $nvm1  dzf  $nvm1  dzo  $nvm1
+  Labels Col R tw1 tw2 fa mo br br si si sp1 sp2 mc1 mc1 fc1 fc1 mc2 mc2 fc2 fc2
+  Labels Row V mzm  $nvm1  dzm  $nvm1  mzf  $nvm1  dzf  $nvm1  dzo  $nvm1
+  Labels Col V tw1 tw2 fa mo br br si si sp1 sp2 mc1 mc1 fc1 fc1 mc2 mc2 fc2 fc2
+#if confint =1
+ Interval @95 U vars2 2 3  U vars2 2 4           ! genetic assortment
+ Interval @95 U vars2 3 3  U vars2 3 4           ! common additive genetic
+ Interval @95 U vars2 4 3  U vars2 4 4           ! male-specific genetic
+ Interval @95 U vars2 5 3  U vars2 5 4           ! dominance genetic
+ Interval @95 U vars2 6 3  U vars2 6 4           ! specific environment
+ Interval @95 U vars2 7 3  U vars2 7 4           ! nonparental shared environment
+ Interval @95 U vars2 8 3  U vars2 8 4           ! twin environment
+ Interval @95 U vars2 9 3  U vars2 9 4           ! cultural transmission
+ Interval @95 U vars2 11 3  U vars2 11 4         ! GE covariance
+ Interval @95 U vars2 12 3  U vars2 12 4         ! male GE covariance
+ Interval @95 K vars2 1 3  K vars2 1 4           ! A
+ Interval @95 K vars2 2 3  K vars2 2 4           ! D
+ Interval @95 K vars2 3 3  K vars2 3 4           ! E
+ Interval @95 K vars2 4 3  K vars2 4 4           ! C
+ Interval @95 K vars2 5 3  K vars2 5 4           ! GE
+#endif
+#if outputs =1
+End
+#else
+ Option NoOutput
+End
+#endif
+
+!!-------------------------!----------------!----!------------------------------
+Group print
+ Calculation
+ Begin Matrices;
+  P Computed =P funn                        ! function values
+  Q Computed =Q cons                        ! constraint values & estimates
+  X Computed =X cors                        ! expected 88 correlations
+  Y Computed =Y cors                        ! expected 7m correlations
+  Z Computed =K vars2                       ! ADECS table
+  U Computed =U vars2                       ! PIABDECTFxSx table
+  V Computed =V vars2                       ! cascade table
+ End Matrices;
+  Labels Col P function
+  Labels Row P mzm dzm mzf dzf dzo
+  Labels Col Q constrai est
+  Labels Row Q q u r sm vm sf vf cm cf cmf pm pf
+  Labels Col U pem pef pemf vcm vcf svcm svcf
+  Labels Row U var asm ac am d e c t ctp ctm gea geb
+  Labels Col V M/M-M  F/F-F M-F F-M
+  Labels Row V Var delta a b d e s t VT means CovAB CovAF CovBF
+   Va Vb Vta Vd Vs Vt Vf Ve Vge SVa SVb SVta SVd SVs SVt SVf SVe SVge
+  Labels Col X Mm Ff Mf Fm
+  Labels Row X var mztw dztw si pc gpp gpm amzp amzm adzp adzm asip asim
+   comzm comzf codzm codzf codzmf
+   sp smztw sdztw ssi spa sspmz sspdz samzp samzm sadzp sadzm
+  Labels Col Y exco
+  Labels Row Y var mztw dztw si pc avmz comz sp
+  Labels Col Z vcm vcf svcm svcf
+  Labels Row Z a d e c ge
+#if ordinal =1
+ Option Func=1.E-9
+#endif
+#if indstat =1
+ Option Mx%P=$datastat
+#endif
+#if xmatrix =1
+ Option MxV=$dataVmat
+ Option MxX=$dataXmat
+ Option Format=$formatX
+#endif
+! Option Multiple Issat
+! Option NAG=10 DB=1
+ Option NDecimals=8
+ Option THard=-2 !Jiggle
+#if sexdiff =0
+!!-------------------------!----------------!----!------------------------------
+!No sex differences (qualitative or quantitative)
+  Equate  J aspi 1 1  G aspi 1 1                 ! variance
+  Drop  B aspi 1 1  R aspi 1 1                   ! male-specific paths
+  Drop  T aspi 1 1  P aspi 1 1                   ! male-specific covariance
+  Drop @1  U aspi 1 1                            ! variance
+  Equate  A aspi 1 1  M aspi 1 1                 ! additive genetic paths
+  Equate  O acted 1 1  P acted 1 1               ! unique environment paths
+  Equate  S aspi 1 1  O aspi 1 1                 ! AF covariance paths
+  Equate  M afpi 1 1  N afpi 1 1  O afpi 1 1  P afpi 1 1   ! cult tr paths
+  Equate  A asxi 1 1  B asxi 1 1  C asxi 1 1     ! environmental variance
+  Equate  V acted 1 1  W acted 1 1               ! dominance paths
+  Equate  K acted 1 1  L acted 1 1               ! common enviroment paths
+  Equate  E acted 1 1  F acted 1 1               ! twin environment paths
+  Drop @1  U acted 1 1  Q acted 1 1  R acted 1 1 ! correlations DCT
+!-------------------------------------------------------------------------------
+#endif
+!Fix all
+End
+
+!!no male-specific genes
+!! Drop  B aspi 1 1  R aspi 1 1  T aspi 1 1  P aspi 1 1
+!! Drop @1  U aspi 1 1
+!!same shared environment in two sexes
+!! Drop @1  Q acted 1 1
+!!same twin environment in two sexes
+!! Drop @1  R acted 1 1
+!!same dominance in two sexes
+!! Drop @1  U acted 1 1
+!!cultural transmission no sex diff
+!! Equate  M afpi 1 1  N afpi 1 1  O afpi 1 1  P afpi 1 1
+
+!!same effect of environment in two sexes
+!! Equate  O acted 1 1  P acted 1 1
+!!same effect of genes in two sexes
+!! Equate  A aspi 1 1  M aspi 1 1
+!!same effect of dominance in two sexes
+!! Equate  V acted 1 1  W acted 1 1               
+!!same effect of shared env in two sexes
+!! Equate  K acted 1 1  L acted 1 1               
+!!same effect of twin env in two sexes
+!! Equate  E acted 1 1  F acted 1 1               
+
+!!no assortment                                  
+!! Drop  I aspi 1 1
+!!no cultural transmission                       
+!! Drop  M afpi 1 1  S aspi 1 1  O aspi 1 1
+!! Drop  A asxi 1 1  B asxi 1 1  C asxi 1 1
+!!no non-parental shared environment
+!! Drop K acted 1 1  L acted 1 1
+!!no special twin environment
+!! Drop E acted 1 1  F acted 1 1
+!!no shared environment (ct + npe + te)
+!! Drop  M afpi 1 1  S aspi 1 1  O aspi 1 1
+!! Drop  A asxi 1 1  B asxi 1 1  C asxi 1 1
+!! Drop K acted 1 1  L acted 1 1
+!! Drop E acted 1 1  F acted 1 1
+!!no genetic effects
+!! Drop  A aspi 1 1  M aspi 1 1
+!! Drop  S aspi 1 1  O aspi 1 1
+!! Drop @1  Q aspi 1 1
+!!no dominance effects
+!! Drop V acted 1 1  W acted 1 1

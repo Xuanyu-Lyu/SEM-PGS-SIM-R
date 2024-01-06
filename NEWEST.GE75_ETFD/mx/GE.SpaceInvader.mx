@@ -1,0 +1,785 @@
+Raw data modification of Lindon Eaves nuclear stealth correlation script - Sarah Medland 07 07 07
+!Segregation       	0.708	0.754    
+
+#define $rm value 1 X 1 1
+#define $rf value 1 X 1 1
+
+#define nvar 1
+#define 2nvar 2
+#define maxthresh 1
+#define ndef 2
+#define nindiv 8
+
+!SARAH'S NOTES
+! Raw data modification of Lindon Eaves nuclear stealth correlation script - Sarah Medland 07 07 07
+! model the raw data as a covariance matrix composed of symetric corelation parameters comuputed through Lindons algerba
+! this script takes 1 v at a time and requires specification of the rm and rf parameters (sqrt of test-retest correlations) - specified above
+! the expected correlation matrices are computed in group9
+! these are applied to the data in groups 17 (MZM) 18 (MZF) 19 (DZM) 20 (DZF) 21 (DZOS)
+!
+!LINDON'S NOTES
+!    **********************     VA30K Modelling transmission of 27 social attitudes ****************************
+!    ********************** FULL MODEL ALL SHARED ENVIRONMENTAL PARAMETERS INCLUDED; SEX DIFFERENCES IN ALL COMPONENTS ***************
+! Fitting genetic and P to P cultural inheritance to polychoric correlations for nuclear families with MZ and DZ twins with phenotypic assortative mating.
+! Model is designed to allow for sex-limited genetic effects
+! Model allows for measurement error if specified and for selection of subsets of correlations to included in analysis
+! Model uses WLS (user defined) with sample sizes as approximate weights.
+!                                                                            (c) Lindon Eaves - VIPBG, VCU, Richmond 10-2005.
+!                                                                                                         NOTES:
+!     Parameterization of genetic effects looks odd.  Initially the genetic components are parameterized in terms of the (equilibrium) correlations
+!     between genotype and phenoptype.  This allows easy derivation of the expectations for correlations in the presence of cultural inheritance.
+!     The "paths" from genes to environment are then derived.
+!     The down-side is that it becomes more tedious to equate genetic effects for males and females in the most general model for complete data sets.
+!     These features are imposed by adding further constraint groups (see groups 21 and 22) that can be imposed or removed simply by changing NG in group 1
+!     [An error "incomputible" will be generated if NG<21 but can be ignored.  It can be removed by commenting out the extra groups.]
+!     To facilitate generalization of the code to other contexts, specific genetic effects are included for both sexes.  However, the male-specific genetic pathways (h2m) are always
+!     constrained to be zero to identify the model (see group 17). 
+!     Group 18 constrains all genetic paths to be = or > 0.  In theory, genes that have a positive effect on males (h1m positive) could have a negative effect on females (h1f negative).
+!     In this case, some boundary constraints on h would be removed.
+!                                                                                                     CORRELATIONS
+!     The "full" data set is assumed to comprise 15 correlations per item.
+!     These are labelled (columns) as follows
+!     H-W M-D M-S F-D F-S SM SF SMF DZM DZF DZMF MZM MZF RM RF
+!  H-W=spouses;   M=Mother, F=Father, D=daughter, S=son, DZM=DZ males etc.   RM and RF are the test retest correlations for males and females.
+!     Correlations are supplied in Group  10.
+!                                                                                                    MODEL PARAMETERS
+! Parameters are labelled as follows (see group 12)
+!         h1m effects on males of genes expressed in both sexes;   h2m effects of genes specific to males (constrained to zero);
+!         h1f   effects on females of genes expressed in both sexes; h2f genetic effects specific to females;
+!         cm and cf - residual shared environment effects on male and female sibships (twin pairs);
+!         um vm uf vf -  paternal (u) and maternal (v) cultural transmission to male (m) and female (f) offspring;
+!         m - correlation between mates; rm rf - paths from "true" score to phenotype in males (m) and females (f) 
+!         chi_sq - loss function (min. weighted residual SS) for each item at wls solution.  Currently the model is fitted directly to the correlations (not z's) and 
+!         assumes that the correlations are independent and based on independent pairs.
+!   GENETIC DOMINANCE:  The program has the option of replacing "C" by genetic dominance.  This is accomplished by setting the 1x1 matrix "a" im group 1 to 0.25 (the correlation between
+!    dominance deviations of siblings.  When fitting "C" make sure that a=1.
+!         The "chi-square" isn't and could be  50% too high in this application (caveat emptor)
+!  The loss-function minimized (see group 11) is the sum over all items of these individual "chi-sq" components.
+!  The "full model" is only identified with all the correlations supplied
+!  Subsets of the correlations may be selected for analysis by setting the elements of the vector "L" in group 1.  Care is needed to include only parameters
+!  that are identified in specific subsets and to amend their interpretation accordingly (e.g. in twins only, "c" includes all the effects of u and v, and any genetic
+!  effects of assortative mating.
+
+
+!SCRIPT
+!Group 1: Sets up parameters for male offspring - P to P vertical cultural inheritance
+Data Calc NG=22   
+Begin matrices;
+g full nvar 1 free;   	! Correlation between "male" genes to male phenotype;
+h full nvar 1 free;  	!  Correlation between "female" genes to male phenotype;
+c full nvar 1 free;   	! Residual shared environment on male phenotype/dominance;
+s full nvar 1 free:   	! Shared twin environment in males (in addition to shared C in sibs)
+m full nvar 1 free;   	! Correlation between mates
+u full nvar 1 free;   	! Path from father (male parent) phenotype (M) to male offspring
+v full nvar 1 free;   	! Path from mother (female parent) phenotype (F) to male offspring
+x full nvar 1  ;  	! Path from "true score" to male phenotype
+K full 1 1 fixed;   	! Coefficent of dominance (0.25) or shared environment (1.0)
+End matrices;
+! **** DOMINANCE ****!
+!matrix K 0.25;
+! **** SHARED ENVIRONMENT ****!
+ matrix K 1.0;
+  MATRIX C     0.4
+  MATRIX G     0.7
+  MATRIX H     0
+  MATRIX K     1.000
+  MATRIX M     0.3
+  MATRIX S     0
+  MATRIX U     0
+  MATRIX V     0
+!start -0.1 u 1 1 - u nvar 1;
+!start -0.1 v 1 1 - v nvar 1;
+! The boundary constraints generally keep 0<parameter<1 - not invoked when commented out - need care when params fixed
+bounds  0 500 m 1 1 - m nvar 1
+bounds  0 500 c 1 1 - c nvar 1
+bounds  0 500 s 1 1 - s nvar 1
+$rm
+!Option NO_Output
+End;
+
+Group 2: Sets up parameters for female offspring - P to P vertical cultural inheritance
+Data Calc
+Begin matrices;
+g full nvar 1 free;   ! Correlation between "male" genes to female phenotype;
+h full nvar 1 free;   ! Correlation between  "female" genes to female phenotype;
+c full nvar 1 free;   ! Residual shared sibling environment/dominance on female phenotype;
+d full nvar 1 ;   ! Female-specific shared sibling environment/dominance
+s full nvar 1 free;   ! Shared twin environment in females (in addition to shared E in sibs)
+t full nvar 1 ;    ! Female-specific shared environment in females (twins)
+m full nvar 1 = m1;  ! Correlation between mates
+u full nvar 1  free;   ! Path from father (male parent) phenotype (M) to female offspring
+v full nvar 1  free;   ! Path from mother (female parent) phenotype (F) to female offspring
+x full nvar 1 fixed;   ! Path from "true score" to female phenotype
+End matrices;
+!start 0.2 all;
+!start  0.6  g 1 1 -  g nvar 1
+  MATRIX D     0.000
+  MATRIX C     0.4
+  MATRIX G     0.7
+  MATRIX H     0
+  MATRIX M     0.3
+  MATRIX S     0
+  MATRIX U     0
+  MATRIX V     0
+!start 0.7 m 1 1 - m nvar 1;
+!start -0.1 u 1 1 - u nvar 1;
+!start -0.1 v 1 1 - v nvar 1;
+bounds  0 500 c 1 1 - c nvar 1
+bounds  0 500 s 1 1 - s nvar 1
+bounds  0 500 d 1 1 - d nvar 1
+bounds  0 500 t 1 1 - t nvar 1
+$rf
+!Option NO_Output
+End;
+
+Group 3: Derive correlations between parental phenotypes and offspring genetic effects in males and females, and cross-sib genetic correlations;
+Data Calc
+Begin matrices;
+m full nvar 1  = m1; "mu"
+w full nvar 1 = g1;  H1M correlation
+x full nvar 1 = h1;  H2M correlation
+y full nvar 1 = g2;  H1F correlation
+z full nvar 1 = h2;  H2F correlation
+h full 1 1 fixed;    ! Half
+i unit nvar 1;            ! One
+End matrices;
+Matrix h
+0.5
+Begin algebra;
+! Father- "Male" offspring genetic effect
+p=h@(w+m.y);
+! Father- "Female" offspring genetic effect
+q=h@(x+m.z);
+! Mother- "Male" offspring genetic effect
+r=h@(y+m.w);
+! Mother- "Female" offspring genetic effect
+s=h@(z+m.x);
+! Genetic correlation between "common" genes (G1) and "sex-specfic" genes  (G2) due to assortative mating ("alpha")
+a=h@m.(w.z + x.y);
+! Genetic correlation between "Male" genetic effects in sibs
+b=h@(i+m.w.y);
+! Ditto for "Female" genetic effects in sibs
+c=h@(i+m.x.z);
+End algebra;
+! Option NO_Output;
+End;
+
+Group 4: Derive paths from genotypes to phenotypes (Use parameters in groups 1 and 2)
+!  This seems "ass about face" but it makes it easier to derive expectations if we start with gene-phenotype CORRELATIONS and derive PATHS
+!  under assumption the VCI has reached equilibrium
+Data calc
+Begin matrices;
+! Genotype - phenotype correlations
+w full nvar 1=w3;
+x full nvar 1=x3;
+y full nvar 1=y3;
+z full nvar 1=z3;
+! Spousal correlations
+m full nvar 1=m1;
+! P to P transmission
+!Father-son
+s full nvar 1 =u1;
+!Mother-son
+t full nvar 1 = v1;
+!Father daughter
+u full nvar 1 = u2;
+!Mother-daughter
+v full nvar 1 = v2;
+h full 1 1 = h3;   !Half (constant)
+End matrices;
+
+Begin algebra;
+! Path from "Male genes" to male phenotype (h1m)
+a=w-h@(w.(s+m.t) + y.(m.s + t)); 
+! Path from "Female genes" to male phenotype (h2m)
+b=x-h@(x.(s+m.t) + z.(m.s + t)); 
+! Path from "Male genes" to female phenotype (h1f)
+c=y-h@(w.(u+m.v) + y.(m.u + v)); 
+! Path from "Female genes" to female phenotype (h1f)
+d=z-h@(x.(u+m.v) + z.(m.u + v)); 
+End algebra;
+! Option NO_Output;
+End;
+
+Group 5: Obtain expected parent-offspring correlations
+Data calc;
+Begin matrices;
+! Genotype-phenotype paths
+a computed=a4;
+b computed=b4;
+c computed=c4;
+d computed=d4;
+! Spousal correlation
+m full nvar 1=m1;
+! P-P paths
+s full nvar 1 = s4;
+t full nvar 1 =  t4;
+u full nvar 1 = u4;
+v full nvar 1 = v4;
+! Correlations between parental phenotypes to offspring genotypes
+w computed = p3;
+x computed = q3;
+y computed = r3;
+z computed = s3;
+End matrices;
+Begin algebra;
+! Father-son
+e=s + m.t +  w.a    + x.b  ;
+! Mother-son
+f= t +  m.s + y.a    + z.b;
+! Father-daughter
+g= u + m.v + w.c   + x.d;
+! Mother-daughter
+h= v + m.u + y.c   + z.d;
+End algebra;
+! Option NO_Output;
+End;
+ 
+Group 6:  Obtain expected sibling correlations (without residual shared environment)
+Data calc
+Begin matrices;
+! Genotype-phenotype paths
+a computed=a4;
+b computed=b4;
+c computed=c4;
+d computed=d4;
+! Spousal correlation
+m full nvar 1=m1;
+! P-P paths
+s full nvar 1 = s4;
+t full nvar 1 =  t4;
+u full nvar 1 = u4;
+v full nvar 1 = v4;
+! Correlations between parental phenotypes to offspring genotypes
+w computed = p3;
+x computed = q3;
+y computed = r3;
+z computed = s3;
+! Genetic correlations between siblings;
+e computed = b3; ! M-M
+f  computed =  c3;   ! F-M
+g computed = a3;  ! M-F
+! Constant (two)
+n full 1 1 fixed;
+End matrices;
+matrix n
+2
+Begin algebra;
+! General formula: 
+! rS1S2= u.u         +   m.u.v   +  u.h1.w      + u.h2.x + 
+!             m.u.v      +     v.v     +  v.h1.y       + v.h2. +
+!             u.h1.rM1 + v.h1.rF1 + h1.h1.rG1G1 + h1.h2.rG2G1  +
+!             u.h2.rM2 + v.h2.rF2 + h1.h2.rG1G2 + h2.h2.rG2G2
+!    =       u.u  +    2.m.u.v +   2.u.h1.rM1 +   2.u.h2.rM2 + v.v  + 2.v.h1.rF1 + 2.v.h2.rF2 + h1.h1.rG1G1 + 2.h1.h2.rG1G2 + h2.h2.rG2G2
+! Male-Male
+p=  s.s  +    n@m.s.t +   n@s.a.w +   n@s.b.x + t.t  + n@t.a.y + n@t.b.z + a.a.e + n@a.b.g + b.b.f;
+! Female-Female
+q=  u.u  +    n@m.u.v +   n@u.c.w +   n@u.d.x + v.v  + n@v.c.y + n@v.d.z + c.c.e + n@c.d.g + d.d.f;
+! Male-Female
+r =  s.u + m.s.v + s.c.w + s.d.x + m.u.t + t.v + t.c.y + t.d.z +  u.a.w + v.a.y + a.c.e + a.d.g + u.b.x + v.b.z + c.b.g + b.d.f;      
+End algebra;
+! Option NO_Output;
+End;
+
+Group 7: Expected correlations for MZ twins (ignoring residual shared environment)
+Data calc;
+Begin matrices;
+! Genotype-phenotype paths
+a computed=a4;
+b computed=b4;
+c computed=c4;
+d computed=d4;
+! Spousal correlation
+m full nvar 1=m1;
+! P-P paths
+s full nvar 1 = s4;
+t full nvar 1 =  t4;
+u full nvar 1 = u4;
+v full nvar 1 = v4;
+! Correlations between parental phenotypes to offspring genotypes
+w computed = p3;
+x computed = q3;
+y computed = r3;
+z computed = s3;
+! Genetic correlations between siblings;
+e computed = b3; ! M-M
+f  computed =  c3;   ! F-M
+g computed = a3;  ! M-F
+! Constant (two)
+n full 1 1 fixed;
+End matrices;
+matrix n
+2
+Begin algebra;
+! Male-Male
+p=  s.s  +    n@m.s.t +   n@s.a.w +   n@s.b.x + t.t  + n@t.a.y + n@t.b.z + a.a + n@a.b.g + b.b;
+! Female-Female
+q=  u.u  +    n@m.u.v +   n@u.c.w +   n@u.d.x + v.v  + n@v.c.y + n@v.d.z + c.c + n@c.d.g + d.d;
+End algebra;
+! Option NO_Output;
+End;
+
+Group 8: Add residual shared environment to sib and twin correlations
+Data calc;
+Begin matrices;
+p computed=p7;  ! MZ male
+q computed=q7;  ! MZ female
+r  computed=p6;  ! DZ/sib male
+s computed=q6;  ! DZ/sib female
+t  computed=r6;   ! DZ/sib male-female 
+c full nvar 1 =  c1;   ! Male residual shared environment       
+d full nvar 1 =  c2;   ! Female shared environment
+f full nvar 1 = d2;     ! Female-specific shared environment
+k full 1 1 =k1;   ! Coefficient of shared environment/dominance component
+End matrices;
+Begin algebra;
+u=p+c.c;  ! MZ male
+v=q+d.d+f.f; ! MZ female
+w=r+k.c.c;  ! DZ male
+x=s+k.(d.d+f.f); ! DZ female
+y=t +k.c.d; ! DZ male-female
+End algebra;
+! Option NO_Output;
+End;
+
+
+! In the following section the expected correlations are organized (by columns) in the following order;
+! 1. Spouses; 2. Mother-daughter 3. Mother-son 4.Father-daughter 5. Father-son 6. Brothers.  7. Sisters  8. M-F siblings
+! 9. Male DZ twins  10. Female DZ twins  11. M-f DZs  12. Male MZ twins  13. Female MZs. 14. Male reliability 15, Female reliability
+   
+Group 9:  Concatenate expected correlations into single matrix - variables are rows, relationships are columns
+!Nuclear Family Group
+Calculation 
+Begin Matrices;
+!_________NUCELAR FAMILY______________________)
+m full nvar 1 =m1;  ! Spouses
+a computed = h5; ! M-D
+b computed = f5; ! M-S
+c computed = g5; ! F-D
+d computed = e5;  ! F-S
+e computed = w8; ! MM
+f computed  = x8; ! FF
+g computed = y8;  !MF
+p computed = u8; ! MZM
+q computed = v8; ! MZF
+x full nvar 1    = x1;  ! RM
+y full nvar 1     =x2;   ! RF
+s full nvar 1    = s1;   ! shared twin environment (males)
+t  full nvar 1    = s2;   ! shared twin environment (females)
+u full nvar 1    = t2;   ! female specific shared environment (twins)
+v unit 1 1 ! variance
+end Matrices;           
+!Start values
+Begin Algebra;
+H = 
+    V   | x.m.y | x.d.x | x.d.x | x.d.x | x.d.x | x.c.y | x.c.y_
+ x.m.y |   V   | y.b.x | y.b.x | y.b.x | y.b.x | y.a.y | y.a.y_
+ x.d.x | y.b.x |   V   | x.(p+s.s).x | x.e.x | x.e.x | x.g.y | x.g.y_
+ x.d.x | y.b.x | x.(p+s.s).x |   V   | x.e.x | x.e.x | x.g.y | x.g.y_
+ x.d.x | y.b.x | x.e.x | x.e.x |   V   | x.e.x | x.g.y | x.g.y_
+ x.d.x | y.b.x | x.e.x | x.e.x | x.e.x |   V   | x.g.y | x.g.y_
+ x.c.y | y.a.y | x.g.y | x.g.y | x.g.y | x.g.y |   V   | y.f.y_
+ x.c.y | y.a.y | x.g.y | x.g.y | x.g.y | x.g.y | y.f.y |  V  ;  !mzm
+I=
+   V   | x.m.y | x.c.y | x.c.y | x.d.x | x.d.x | x.c.y | x.c.y_
+ x.m.y |   V   | y.a.y | y.a.y | y.b.x | y.b.x | y.a.y | y.a.y_
+ x.c.y | y.a.y |   V   | y.(q+t.t+u.u).y | x.g.y | x.g.y | y.f.y | y.f.y_
+ x.c.y | y.a.y | y.(q+t.t+u.u).y |   V   | x.g.y | x.g.y | y.f.y | y.f.y_
+ x.d.x | y.b.x | x.g.y | x.g.y |   V   | x.e.x | x.g.y | x.g.y_
+ x.d.x | y.b.x | x.g.y | x.g.y | x.e.x |   V   | x.g.y | x.g.y_
+ x.c.y | y.a.y | y.f.y | y.f.y | x.g.y | x.g.y |   V   | y.f.y_
+ x.c.y | y.a.y | y.f.y | y.f.y | x.g.y | x.g.y | y.f.y |  V  ;    !mzf
+J=
+   V   | x.m.y | x.d.x | x.d.x | x.d.x | x.d.x | x.c.y | x.c.y_
+ x.m.y |   V   | y.b.x | y.b.x | y.b.x | y.b.x | y.a.y | y.a.y_
+ x.d.x | y.b.x |   V   | x.(e+s.s).x | x.e.x | x.e.x | x.g.y | x.g.y_
+ x.d.x | y.b.x | x.(e+s.s).x |   V   | x.e.x | x.e.x | x.g.y | x.g.y_
+ x.d.x | y.b.x | x.e.x | x.e.x |   V   | x.e.x | x.g.y | x.g.y_
+ x.d.x | y.b.x | x.e.x | x.e.x | x.e.x |   V   | x.g.y | x.g.y_
+ x.c.y | y.a.y | x.g.y | x.g.y | x.g.y | x.g.y |   V   | y.f.y_
+ x.c.y | y.a.y | x.g.y | x.g.y | x.g.y | x.g.y | y.f.y |  V  ;    !dzm
+K=
+   V   | x.m.y | x.c.y | x.c.y | x.d.x | x.d.x | x.c.y | x.c.y_
+ x.m.y |   V   | y.a.y | y.a.y | y.b.x | y.b.x | y.a.y | y.a.y_
+ x.c.y | y.a.y |   V   | y.(f+t.t+u.u).y | x.g.y | x.g.y | y.f.y | y.f.y_
+ x.c.y | y.a.y | y.(f+t.t+u.u).y |   V   | x.g.y | x.g.y | y.f.y | y.f.y_
+ x.d.x | y.b.x | x.g.y | x.g.y |   V   | x.e.x | x.g.y | x.g.y_
+ x.d.x | y.b.x | x.g.y | x.g.y | x.e.x |   V   | x.g.y | x.g.y_
+ x.c.y | y.a.y | y.f.y | y.f.y | x.g.y | x.g.y |   V   | y.f.y_
+ x.c.y | y.a.y | y.f.y | y.f.y | x.g.y | x.g.y | y.f.y |  V  ;   !dzf
+L= 
+   V   | x.m.y | x.c.y | x.d.x | x.d.x | x.d.x | x.c.y | x.c.y_
+ x.m.y |   V   | y.a.y | y.b.x | y.b.x | y.b.x | y.a.y | y.a.y_
+ x.c.y | y.a.y |   V   | x.(g+s.t).y | x.g.y | x.g.y | y.f.y | y.f.y_
+ x.d.x | y.b.x | x.(g+s.t).y |   V   | x.e.x | x.e.x | x.g.y | x.g.y_
+ x.d.x | y.b.x | x.g.y | x.e.x |   V   | x.e.x | x.g.y | x.g.y_
+ x.d.x | y.b.x | x.g.y | x.e.x | x.e.x |   V   | x.g.y | x.g.y_
+ x.c.y | y.a.y | y.f.y | x.g.y | x.g.y | x.g.y |  V    | y.f.y_
+ x.c.y | y.a.y | y.f.y | x.g.y | x.g.y | x.g.y | y.f.y |  V  ;     !dzo
+!sumary matrix
+R=x.m.y|y.a.y|y.b.x|x.c.y|x.d.x|x.e.x|y.f.y|x.g.y|x.(e+s.s).x|y.(f+ t.t+u.u).y|x.(g+s.t).y|x.(p+s.s).x|y.(q+t.t+u.u).y|x.x|y.y;
+End Algebra;
+label  column R H-W M-D M-S F-D F-S SM SF SMF DZM DZF DZMF MZM MZF RM RF
+! Option NO_Output;
+End;
+
+Group 10:  Organize and label parameter estimates
+data calc;
+begin matrices;
+! Identify key parameters
+a computed =a4;  ! Genetic path male genes to male phenotype
+b computed =b4;  ! Genetic path female genes to male phenotype
+r computed =c4   ! Genetic paths from male genes to female phenotype;
+s computed =d4   ! Genetic paths from female genes to female phenotype;
+c full nvar 1=c1;  ! Residual shared environment - males
+d full nvar 1=c2; ! Residual shared environment - females
+y full nvar 1=d2; ! Female-specific shared environment -sibs
+q full nvar 1=t2;  ! Female-specific shared environemnt - twins
+e full nvar 1=u1; ! Paternal effect on  male phenotype
+f  full nvar 1=v1; ! Maternal effect on male phenotype
+g full nvar 1=u2; ! Paternal effect on female phenotype
+h full nvar 1=v2; ! Maternal effect on female phenotype
+t full nvar 1 = x1; ! Male reliability
+u full nvar 1=x2; ! Female reliability
+v full nvar 1=s1; ! Shared twin environment (males)
+w full nvar 1=s2;! Shared twin environment (females)
+m full nvar 1=m1; ! Spousal correlation
+end matrices;
+begin algebra;
+P= a|b|r|s|c|d|y|v|w|q|e|f|g|h|m|t|u;
+end algebra;
+labels column P h1m h2m h1f h2f c1m c1f c2f t1m t1f t2f um vm uf vf m rm rf  
+! Option NO_Output;
+end;
+
+Group 11:  Constraint h2m=0;
+Constraint
+Begin matrices;
+ h computed  =  b4;  ! Path from "female genes" to male phenotype - constraint needed to identify model
+ d computed = d4; !make female genes = male genes
+ a computed = a4;
+ b computed = b4;
+ z zero 1 1;
+End matrices;
+Constraint  h=a;
+Constraint d=a;
+Constraint b=a;
+!Options RS
+!Options NO;
+End group;
+
+Group 12: Constrain 0<h1m, h1f and h2f <1
+Constraint
+Begin matrices;
+i unit nvar 1;
+z zero nvar 1;
+a computed=a4;
+c computed=c4;
+d computed=d4;
+End Matrices;
+Begin algebra;
+h=a_c_d;
+q=z_z_z;
+r=i_i_i;
+End algebra;
+Constraint (h_q)<(r_h);  !!!!! Error in this constraint function fixed 10-30-05  !!!!!
+!Option NO_output
+!Option RS
+End group;
+
+
+Group 13:  Compute proportions of variance explained by genes, environment and rGE - males
+Data calc;
+Begin matrices;
+p computed=p3;            ! Correlation between male parental phenotype and "male" genes 
+q computed=q3;            ! Correlation between male parental phenotype and "female" genes 
+r computed=r3;              ! Correlation between female parental phenotype and "male" genes 
+s computed=s3;            ! Correlation between male paternal phenotype and "female" genes 
+a computed=a3;            ! Correlation between male and female genes
+m full nvar 1=m1;             ! Spousal correlation
+c full nvar 1=c1;               ! Residual shared environment path
+t full nvar 1=s1                 ! Shared twin environment (males)
+u full nvar 1=u1;               ! Path from male parent to male phenotype
+v full nvar 1=v1;               ! Path from female parent to male phenotype;
+g computed=a4;            ! Path from "male" genes to male phenotype;
+h computed=b4;            ! Path from "female" genes to male phenotype (fixed at zero)
+i full 1 1=v9;     !total variance
+k full 1 1 fixed;  ! Constant (2)
+End matrices;
+matrix k 2
+
+Begin algebra;
+w=g.g + h.h + k@a.g.h;                         ! Genetic variance 
+x=c.c;                                                    ! Residual shared environmental variance ("C")
+d=t.t;                                                     ! Twin shared environment
+y=u.u + v.v + k@u.v.m;                        ! Variance due to cultural inheritance
+z=k@(g.u.p + g.v.r + h.u.q + h.v.s);      ! Passive rGE
+e=i-w-x-y-z-d;                                           ! Residual environmental variance  ("E")
+!t= w|x|y|z|e;
+End algebra;
+!Options NO_output;
+End group;
+
+Group 14:   Obtain proportions of variance in females
+Data Calc;   
+Begin Matrices;
+! See definitions in previous group
+p computed=p3;
+q computed=q3;
+r computed=r3;
+s computed=s3;
+a computed=a3;
+m full nvar 1=m1;
+c full nvar 1=c2;                   ! Residual shared environment path
+b full nvar 1=d2;                  ! Female-specific shared environmental path
+t full nvar 1=s2;                   ! Special twin environment (females)
+f full nvar 1=t2;                    ! Female-specific special twin environment
+u full nvar 1=u2;                         ! Path from male parent to female phenotype
+v full nvar 1=v2;                         ! Path from female parent to female phenotype
+g computed=c4;                ! Path from "male" genes to female phenotype;  
+h computed=d4;                ! Path from "female" genes to female phenotype;
+i full 1 1=v9;     !total variance
+k full 1 1 fixed;  ! Constant (2)
+End matrices;
+
+matrix k 2
+
+Begin algebra;
+w=g.g + h.h + k@a.g.h;                         ! Genetic variance 
+x=c.c+b.b;                                                  ! Residual shared environment ("C")
+d=t.t + f.f;                                                    ! Residual shared environmental variance (twins "S")
+y=u.u + v.v + k@u.v.m;                        ! Variance due to cultural inheritance
+z=k@(g.u.p + g.v.r + h.u.q + h.v.s);      ! Passive rGE
+e=i-w-x-y-z-d;                                           ! Residual environmental variance
+!t= w|x|y|z|e;
+End algebra;
+!Options NO_output;
+End group;
+
+Group 15:  Collect variance proportions together
+Data Calc;
+Begin matrices;
+q computed=w13;
+r computed=e13;
+s computed=x13;
+t computed=y13;
+u computed=z13;
+g computed=d13;
+v computed=w14;
+w computed=e14;
+x computed=x14;
+y computed=y14;
+z computed=z14;
+h computed=d14;
+a full nvar 1 = x1;   ! Path from true score to male phenotype;
+b full nvar 1 = x2;   ! Path from true score to female phenotype;
+i unit nvar 1;
+End matrices;
+Begin algebra;
+c=a.a;
+d=b.b;
+p=q|v |r|w |s|x |g|h |t|y |u|z;     !want this
+f =c.q|d.v|c.r|d.w|c.s|d.x|c.g|d.h|c.t|d.y|c.u|d.z|i-c|i-d;
+e=q|r|s|g|t|u;
+End algebra;
+!Options NO_output;
+End Group;
+
+
+Group 16:  Collect variance proportions together and print;
+Data calc;
+Begin matrices;
+P computed=p15;
+Q computed=f15;
+R computed=r9;
+S computed=p10;
+E computed=e15;
+End matrices;
+Label column p VAM  VAF   VEM VEF VCM  VCF  VTSM VTSF VCIM  VCIF rGEM  rGEF 
+Label column q VAM  VAF   VEM VEF VCM  VCF  VTSM VTSF VCIM  VCIF rGEM  rGEF VERM VERF 
+label  column R H-W M-D M-S F-D F-S SM SF SMF DZM DZF DZMF MZM MZF RM RF
+labels column S h1m h2m h1f h2f c1m c1f c2f t1m t1f t2f um vm uf vf m rm rf  
+Options ND=3;
+Option MxE=SIEst.txt
+Option Format=(6(F6.3,1x)) 
+End group;
+
+    
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Data groups 17-21_____________________________________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    
+GROUP17: MZM Data group 
+!Estimate the covs
+Data NI=37
+Missing=-999
+Rec File =MZM.S
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select  Fa Mo Tw1 Tw2 bro1 bro2 sis1 sis2 ;
+
+Begin Matrices; 
+A computed 8 8 = H9   !MZM Nuclear family
+T Full maxthresh 1 free          ! thresholds/means
+V unit 1 nindiv
+End Matrices;
+
+!Start values
+Ma T  0 !0.63
+
+!Thresholds 
+Means (T*V);
+Covariances A ;
+Option RS
+
+End
+
+    
+GROUP18: MZF Data group 
+!Estimate the covs
+Data NI=37
+Missing=-999
+Rec File =MZF.S
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select  Fa Mo Tw1 Tw2 bro1 bro2 sis1 sis2 ;
+
+Begin Matrices; 
+A computed 8 8 = I9   !MZF Nuclear family
+T Full maxthresh 1 =T17          ! thresholds/means
+V unit 1 nindiv
+End Matrices;
+
+!Start values
+Ma T  0 !0.63
+
+Means (T*V);
+Covariances A ;
+Option RS
+End
+
+    
+GROUP19 DZM Data group 
+!Estimate the covs
+Data NI=37
+Missing=-999
+Rec File =DZM.S
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select  Fa Mo Tw1 Tw2 bro1 bro2 sis1 sis2 ;
+
+Begin Matrices; 
+A computed 8 8 = J9   !DZM Nuclear family
+T Full maxthresh 1 =T17          ! thresholds/means
+V unit 1 nindiv
+End Matrices;
+
+!Start values
+Ma T  0 !0.63
+
+Means (T*V);
+Covariances A ;
+Option RS
+End
+
+    
+GROUP20: DZF Data group 
+!Estimate the covs
+Data NI=37
+Missing=-999
+Rec File =DZF.S
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select  Fa Mo Tw1 Tw2 bro1 bro2 sis1 sis2 ;
+
+Begin Matrices; 
+A computed 8 8 = K9   !DZF Nuclear family
+T Full maxthresh 1 =T17          ! thresholds/means
+V unit 1 nindiv
+End Matrices;
+
+!Start values
+Ma T  0 !0.63
+
+Means (T*V);
+Covariances A ;
+Option RS
+End
+
+
+GROUP21: DZFM Data group 
+!Estimate the covs
+Data NI=37
+Missing=-999
+Rec File =DZOS.S
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select  Fa Mo Tw2 Tw1 bro1 bro2 sis1 sis2 ;
+
+Begin Matrices; 
+A computed 8 8 = L9   !DZOS Nuclear family
+T Full maxthresh 1 =T17          ! thresholds/means
+V unit 1 nindiv
+End Matrices;
+
+!Start values
+Ma T  0 !0.63
+
+Means (T*V);
+Covariances A ;
+Option RS  
+Option Multiple
+
+Equate S 1 1 1 S 2 1 1      !equate twin envs of males & females
+Equate C 1 1 1 C 2 1 1    !equate (dominance or share env) of males & females 
+Equate U 1 1 1 V 1 1 1 U 2 1 1 V 2 1 1    !equate all VT paths
+
+End
+
+
+GROUP 22 Constrain VaF to VaM
+constrain
+Begin Matrices;
+X full 1 4 free
+A comp 1 1 =A4
+B comp 1 1 =B4
+C comp 1 1 =C4
+D comp 1 1 =D4
+End Matrices;
+Eq X 1 1 X 1 3
+Eq X 1 2 X 1 4
+Constrain X=A|B|C|D;
+End
+
+
+!SECOND RUN - CORRECT MODEL
+
+Drop S 1 1 1      !drop twin envs of males & females
+Drop C 1 1 1    !drop (dominance or share env) of males & females 
+Drop U 1 1 1    !drop all VT paths
+!Drop A 22 1 1 A 22 1 2 
+End
+
+
+
+
+
+
+
+
+

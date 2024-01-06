@@ -1,0 +1,864 @@
+
+############################################################
+# SCRIPT FOR ANALYZING PEDIGREE FAMILY & TWIN DATA         #
+# by Matthew C Keller, version 1/26/2007                   #
+############################################################
+
+
+
+
+########################################################################################################################################################
+########################################################################################################################################################
+########################################################################################################################################################
+########################################################################################################################################################
+
+#LETS TAKE STOCK OF THE OBJECTS WE'VE CREATED (SAVED IN THE *.Rdata, IF YOU SPECIFIED IT TO DO SO) AND THEIR MEANING:
+#Let x = run.number = number of generations interated
+#Also, any objects in quotes ("FullPopulation.x") refers to the names of the matrices
+#written to your working directory if output.data.pergen == "yes"
+
+#track.changes :                    this matrix contains basic information (variances, covariances, etc) for each generation, one per column
+
+#effects.x = "FullPopulation.x" :   matrices of phonetypes & genotypes (P & G) of everyone in ancestor's generation, one per column
+#males.x = "BreedingMales.x" :      matrices of P & G of every male who married in ancestor's generation, one per column
+#females.x = "BreedingFemales.x" :  matrices of P & G of every female who married in ancestor's generation, one per column
+
+#effects.spouseparents = "SpousalPopulation.Parents" : matrices of P & G of everyone in spouses' parents' generation 
+#fathers.spouse = "BreedingMales.SpousesParents" :     matrices of P & G of every male who married in spouses parents' generation
+#mothers.spouse = "BreedingFemales.SpousesParents" :   matrices of P & G of every female who married in spouses parents' generation
+
+#spouses.cur = "SpousalPopulation.Spouses" :           matrices of P & G of every potential spouse of twins
+
+#effects.twinparents = "TwinPopulation.Parents" :      matrices of P & G of everyone in twins' parents' generation 
+#fathers.twins = "BreedingMales.TwinParents" :         matrices of P & G of every male who married in twins parents' generation
+#mothers.twins = "BreedingFemales.TwinParents" :       matrices of P & G of every female who married in twins parents' generation
+
+#sibs.cur = "TwinPopulation.Sibs" :                    matrices of P & G of every sibling of twins
+#mz.cur = "TwinPopulation.MZs" :                       matrices of P & G of every MZ twin
+#dz.cur = "TwinPopulation.DZs" :                       matrices of P & G of every DZ twin
+
+#maletwin.femalespouses = "FullPopulation.TwinMale.FemSpouse" :    matrices of P & G of every male twin & female (potential) spouse
+#femaletwin.malespouses = "FullPopulation.TwinFemale.MaleSpouse" : matrices of P & G of every female twin & male (potential) spouse
+
+#maletwins = "Breeding.Twin.Males" :                   matrices of P & G of every male twin who married
+#femaletwins = "Breeding.Twin.Females" :               matrices of P & G of every female twin who married
+
+#malespouses = "Breeding.TwinSpouse.Males" :           matrices of P & G of every husband of a twin
+#femalespouses = "Breeding.TwinSpouse.Females" :       matrices of P & G of every wife of a twin
+
+#mtc.cur = "MaleTwin.Children" :                       matrices of P & G of every child of male twin - female spouse
+#ftc.cur = "FemaleTwin.Children" :                     matrices of P & G of every child of female twin - male spouse
+
+
+
+
+########################################################################################################################################################
+########################################################################################################################################################
+########################################################################################################################################################
+########################################################################################################################################################
+
+
+
+
+
+
+
+
+
+#1 ACE models
+
+mz.correlation <- cor(mz[seq(1,nrow(mz),by=2),"phenotype"],mz[seq(2,nrow(mz),by=2),"phenotype"])
+dz.correlation <- cor(dz[seq(1,nrow(dz),by=2),"phenotype"],dz[seq(2,nrow(dz),by=2),"phenotype"])
+
+A.eq <- track.changes["var.A",number.runs+1]
+C.eq <- track.changes["var.C",number.runs+1]
+D.eq <- track.changes["var.D",number.runs+1]
+E.eq <- track.changes["var.E",number.runs+1]
+
+ha.eq <- track.changes["var.A",number.runs+1]/track.changes["var.phenotype",number.runs+1]
+hc.eq <- track.changes["var.C",number.runs+1]/track.changes["var.phenotype",number.runs+1]
+hd.eq <- track.changes["var.D",number.runs+1]/track.changes["var.phenotype",number.runs+1]
+he.eq <- track.changes["var.E",number.runs+1]/track.changes["var.phenotype",number.runs+1]
+
+{if (mz.correlation/dz.correlation > .5){
+CTD.est.A <- 2*(mz.correlation-dz.correlation)
+CTD.est.C <- (2*dz.correlation) - mz.correlation
+CTD.est.E <- 1-mz.correlation
+CTD.est.D <- 0
+
+ace.matrix <- matrix(c(CTD.est.A,CTD.est.C,CTD.est.D,CTD.est.E,ha.eq,hc.eq,hd.eq,he.eq,A,C,D,E,A.eq,C.eq,D.eq,E.eq),nrow=4)
+dimnames(ace.matrix)[[2]] <- c("h2.CTD","h2.Final","Var.Gen.0","Var.Final")
+dimnames(ace.matrix)[[1]] <- c("A","C","D","E")}
+
+else if (mz.correlation/dz.correlation < .5){
+CTD.est.A <- (4*dz.correlation)-mz.correlation
+CTD.est.C <- 0
+CTD.est.E <- 1-mz.correlation
+CTD.est.D <- (2*mz.correlation)-(4*dz.correlation)
+
+ace.matrix <- matrix(c(CTD.est.A,CTD.est.C,CTD.est.D,CTD.est.E,ha.eq,hc.eq,hd.eq,he.eq,A,C,D,E,A.eq,C.eq,D.eq,E.eq),nrow=4)
+dimnames(ace.matrix)[[2]] <- c("h2.CTD","h2.Final","Var.Gen.0","Var.Final")
+dimnames(ace.matrix)[[1]] <- c("A","C","D","E")}
+
+
+#################
+round(ace.matrix,3)
+#################
+}
+############################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#2 GRAPHING
+
+setwd("C:/Matts Folder/RESEARCH/PedEvolve/Lisa-3-7")
+library(plotrix)
+#load("Age.A.RData")
+
+
+######################GRAPHING TRACK CHANGES
+pdf("VarianceComponents-Lisa.pdf",width=11, height=8.5,pointsize=12, paper="special")
+
+###start loop
+for (i in c(1:9)){
+cat(paste("track.changes <- read.table('Track.Changes",i,"', header=TRUE)", sep=""),file="temp")
+eval(parse(file="temp"))
+x <- as.matrix(track.changes)
+                          
+###############################
+#PLOT THE CHANGES IN VARIANCE AND COVARIANCE ACROSS GENERATIONS
+
+###Axis break stuff
+ymax <- max(ceiling(c(x["var.A",],x["var.D",],x["var.C",],x["var.E",],x["var.Age",],x["var.AxAge",])*10))/10
+breakdiff <- (1-ymax)-.2
+pmax <- max(ceiling(x["var.phenotype",]*10))/10
+preax <- seq(0,10,.1)
+ax1 <- preax[preax<=(ymax+.05)]
+ax2 <- preax[preax> .79 & preax <= pmax+.31]
+len.ax <- length(c(ax1,ax2)) 
+realax <- preax[1:len.ax]
+breakpt <- preax[length(ax1)+1]
+axlab <- c(ax1,"",ax2[-1])
+###
+
+plot(x["var.phenotype",]-(breakdiff-.1),ylim=c(realax[1],realax[length(realax)]),type='l',lwd=2,col='black',xlab='Generation Number'
+     ,ylab='Variance or Covariance',bty='n',axes=FALSE)
+
+axis(1)
+axis(2,at=realax,labels=axlab)
+axis.break(axis=2,breakpt,bgcol="white",breakcol="black",style="zigzag",brw=0.04)
+
+
+title(main= "Variance Components from PedEvolve Simulation")
+mtext(substitute(paste("A=",a,", D=",d,", C=",c,", E=",e,", Age=",age,", AgexA=",int,", r(A,Int)=",r,", VT=",vt,", AM=",am,sep="")
+ ,list(a=x["A",1],d=x["D",1],c=x["C",1],e=x["E",1],age=x["AGE",1],
+ int=x["AGE.by.A",1],r=x["R.Alevel.Aslope",1],vt=x["VT",1],am=x["AM",1])),
+      side=3,outer=FALSE,line=0, cex=1.1)
+
+if(x["A",1] != 0) {lines(x["var.A",],col='darkblue',lwd=2)}
+if(x["D",1] != 0) {lines(x["var.D",],col='purple',lwd=2)}
+if(x["C",1] != 0) {lines(x["var.C",],col='red',lwd=2)}
+if(x["E",1] != 0) {lines(x["var.E",],col='brown',lwd=2)}
+if(x["AGE",1] != 0) {lines(x["var.Age",],col='yellow',lwd=2)}
+if(x["AGE.by.A",1] != 0) {lines(x["var.AxAge",],col='green',lwd=2)}
+if(x["VT",1] != 0) {lines(x["cov.AC",],col='orange',lwd=2)}
+
+
+legend(x=1,y=max(realax),legend=c("Vp","Va","Vd","Vc","Ve","Vage","Vaxage","CVac"),lty=1,
+       col=c('black','darkblue','purple','red','brown','yellow','green','orange'),
+       lwd=2,ncol=3,bg='snow2',yjust=1)
+
+
+cat(paste("track.changes",i," <- x", sep=""),file="temp")
+eval(parse(file="temp"))
+
+###############################
+}
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#3 GRAPHING AN ALTERNATIVE WAY
+
+
+######################GRAPHING TRACK CHANGES
+pdf("VarianceComponents-Lisa-3-7.pdf",width=11, height=8.5,pointsize=12, paper="special")
+
+###start loop
+for (i in c(0:10,20:30)){
+cat(paste("track.changes <- read.table('Track.Changes",i,"', header=TRUE)", sep=""),file="temp")
+eval(parse(file="temp"))
+x <- as.matrix(track.changes)
+ 
+
+###Axis break stuff
+ymax <- max(ceiling(c(x["var.A",],x["var.D",],x["var.C",],x["var.E",],x["var.Age",],x["var.AxAge",])*10))/10
+breakdiff <- (1-ymax)-.2
+pmax <- max(ceiling(x["var.phenotype",]*10))/10
+preax <- seq(0,10,.1)
+ax1 <- preax[preax<=(ymax+.05)]
+ax2 <- preax[preax> .79 & preax <= pmax+.31]
+len.ax <- length(c(ax1,ax2)) 
+realax <- preax[1:len.ax]
+breakpt <- preax[length(ax1)+1]
+axlab <- c(ax1,"",ax2[-1])
+###
+
+plot(x["var.phenotype",],ylim=c(0,pmax+(pmax/10)),type='l',lwd=2,col='black',xlab='Generation Number'
+     ,ylab='Variance or Covariance',bty='n',axes=FALSE)
+
+axis(1)
+axis(2)
+
+
+title(main= "Variance Components from PedEvolve Simulation")
+mtext(substitute(paste("A=",a,", D=",d,", C=",c,", E=",e,", Age=",age,", AgexA=",int,", r(A,Int)=",r,", VT=",vt,", AM=",am,sep="")
+ ,list(a=x["A",1],d=x["D",1],c=x["C",1],e=x["E",1],age=x["AGE",1],
+ int=x["AGE.by.A",1],r=x["R.Alevel.Aslope",1],vt=x["VT",1],am=x["AM",1])),
+      side=3,outer=FALSE,line=0, cex=1.1)
+
+if(x["A",1] != 0) {lines(x["var.A",],col='darkblue',lwd=2)}
+if(x["D",1] != 0) {lines(x["var.D",],col='purple',lwd=2)}
+if(x["C",1] != 0) {lines(x["var.C",],col='red',lwd=2)}
+if(x["E",1] != 0) {lines(x["var.E",],col='brown',lwd=2)}
+if(x["AGE",1] != 0) {lines(x["var.Age",],col='yellow',lwd=2)}
+if(x["AGE.by.A",1] != 0) {lines(x["var.AxAge",],col='green',lwd=2)}
+if(x["VT",1] != 0 & x["C",1] != 0 & x["A",1] != 0) {lines(x["cov.AC",],col='orange',lwd=2)}
+
+
+if (i==0 | i==20){
+legend(x=1,y=pmax+(pmax/10),legend=c("Vp","Va","Vd","Vc","Ve","Vage","Vaxage","CVac"),lty=1,
+       col=c('black','darkblue','purple','red','brown','yellow','green','orange'),
+       lwd=2,ncol=3,bg='snow2',yjust=1)}
+
+
+cat(paste("track.changes",i," <- x", sep=""),file="temp")
+eval(parse(file="temp"))
+
+###############################
+}
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+
+#4 LOSS OF HETEROZYGOSITY
+
+###############################################################################
+#loss of heterozygosity (actually, allozygosity)
+load("P27.4.RData")
+
+pop <- 5000
+gens <- 100
+
+allozygous <- vector(length=gens+1)
+allozygous[1] <- 100
+
+for (i in 1:gens){
+allozygous[i+1] <- (1-1/(2*pop[1]))*allozygous[i]}
+
+#expected = 99% (see allozygous[101])
+(obs.alloz1 <- sum(PedigreeData.Full$Pat.Loc1==PedigreeData.Full$Mat.Loc1)/length(PedigreeData.Full$Pat.Loc1))
+(obs.alloz2 <- sum(PedigreeData.Full$Pat.Loc2==PedigreeData.Full$Mat.Loc2)/length(PedigreeData.Full$Pat.Loc2))
+(obs.alloz3 <- sum(PedigreeData.Full$Pat.Loc3==PedigreeData.Full$Mat.Loc3)/length(PedigreeData.Full$Pat.Loc3))
+(obs.alloz4 <- sum(PedigreeData.Full$Pat.Loc4==PedigreeData.Full$Mat.Loc4)/length(PedigreeData.Full$Pat.Loc4))
+(obs.alloz5 <- sum(PedigreeData.Full$Pat.Loc5==PedigreeData.Full$Mat.Loc5)/length(PedigreeData.Full$Pat.Loc5))
+#######################
+
+
+#################
+#look at summary data of a locus
+summary(as.factor(PedigreeData.Full$Pat.Loc1))
+length(unique(PedigreeData.Full$Pat.Loc1))
+summary(as.factor(PedigreeData.Full$Mat.Loc1))
+length(unique(PedigreeData.Full$Mat.Loc1))
+
+################################################################################
+
+
+
+
+
+
+
+
+#5 FIGURING OUT VA GIVEN AM
+
+################################################################################
+#VA under assortative mating, no VT
+
+#iterating it ourselves
+r <- .5
+va0 <- .6667 #a heritability of .40 originally
+ve <- 1
+va <- va0
+
+for (i in 1:40){
+va <- .5*va0 + (.5*va) + (.5*r)*(va^2/(va+ve))
+print(va)}
+
+
+
+#predicted equilibrium, method 1 (knowing the end stage variance components):
+va.eq1 <- va0/(1-(r*(va/(va+ve))))
+
+
+
+
+#predicted equilibrium, method 2, given few genes:
+n <- 2 #number genes
+fe <- 1-(1/(2*n))
+va <- va0
+
+for (i in 1:40){
+va <- .5*va0 + (.5*va) + (.5*r*fe)*(va^2/(va+ve))
+print(va)}
+
+va.eq2 <- va0/(1-(r*fe*(va/(va+ve))))
+
+
+######################
+#predicted equilibrium, method 3 (knowing only the first stage variance components) - this isn't quite right
+coef1 <- -va0^2-va0
+coef2 <- va0+1
+coef3 <- 2*va0+2-r
+coef4 <- va0-2*r+1
+coef5 <- r^2-r
+
+increaseVA <- polyroot(c(coef1,coef2,coef3,coef4,coef5))[1]
+va.eq3 <- (1+increaseVA)*va0
+
+##plot it
+eva <- function(g){coef5*g^4+coef4*g^3+coef3*g^2+coef2*g+coef1}
+yval <- vector(length=500)
+k <- 0
+for (i in seq(0,1,length.out=500)){
+k <- k+1
+yval[k] <- eva(i)}
+
+plot(seq(0,1,length.out=500),yval,pch=".")
+abline(h=0)
+cbind(yval,seq(0,1,length.out=500))
+####################
+
+
+
+#observed & predicted heritabilities:
+#track.changes1
+mean(track.changes1["var.A",5:85]/track.changes1["var.phenotype",5:85])
+sd(track.changes1["var.A",5:85]/track.changes1["var.phenotype",5:85])
+va.eq1/(va.eq1+1)
+va.eq2/(va.eq2+1)
+
+#track.changes2
+mean(track.changes2["var.A",5:200]/track.changes2["var.phenotype",5:200])
+sd(track.changes2["var.A",5:85]/track.changes2["var.phenotype",5:85])
+va.eq1/(va.eq1+1)
+va.eq2/(va.eq2+1)
+
+
+
+
+
+mean(track.changes3["var.A",20:100])
+sd(track.changes3["var.A",20:100])
+
+
+
+
+###############
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##older stuff, a lot is wrong down here
+
+
+d <- mean(track.changes3["AM",])
+a <- sqrt(mean(track.changes3["A",]))
+
+coef1 <- 1
+coef2 <- -1
+coef3 <- d*(a^2)
+
+polyroot(c(coef1,coef2,coef3))
+
+##plot it
+eva <- function(g){d*(a^2)*(g^2) - g + 1}
+yval <- vector(length=500)
+k <- 0
+for (i in seq(-5,30,length.out=500)){
+k <- k+1
+yval[k] <- eva(i)}
+
+plot(seq(-5,30,length.out=500),yval)
+####
+
+#very roughly, expected Va - rough b/c the a^2 in denom actually changes over time
+rough.VA <- .3/(1-d*a^2)
+
+#more exact
+increaseVA <- polyroot(c(coef1,coef2,coef3))[1]
+expectedVA1 <- track.changes3["A",1]*as.real(increaseVA)
+
+#iterating it ourselves - THIS IS WRONG WRONG WRONGGG
+va1 <- .3*(1+.5*(d*.3))
+p1 <- 1*(1+.5*(d*(a^4)))
+h1 <- va1/p1
+
+va2 <- .3*(1+.5*(d*h1))
+p2 <- 1*(1+.5*(d*(h1^2)))
+h2 <- va2/p2
+
+va3 <- .3*(1+.5*(d*h2))
+p3 <- 1*(1+.5*(d*(h2^2)))
+h3 <- va3/p3
+
+va4 <- .3*(1+.5*(d*h3))
+p4 <- 1*(1+.5*(d*(h3^2)))
+h4 <- va4/p4
+
+va5 <- .3*(1+.5*(d*h4))
+p5 <- 1*(1+.5*(d*(h4^2)))
+h5 <- va5/p5
+
+va1;va2;va3;va4;va5
+
+
+
+
+
+
+
+
+
+
+
+
+mean(track.changes3["var.A",5:20])
+
+
+
+
+
+
+
+
+
+
+PedigreeData.Full[1:20,]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+round(effects.90[,1:10],2)
+
+integer(effects.90[,1:10])
+
+
+
+
+
+x1 <- round(rbind((effects.1[1:7,]/10^8),effects.1[8:nrow(effects.1),]),2)
+x20 <- round(rbind((effects.20[1:7,]/10^8),effects.20[8:nrow(effects.20),]),2)
+x40 <- round(rbind((effects.40[1:7,]/10^8),effects.40[8:nrow(effects.40),]),2)
+x60 <- round(rbind((effects.60[1:7,]/10^8),effects.60[8:nrow(effects.60),]),2)
+x80 <- round(rbind((effects.80[1:7,]/10^8),effects.80[8:nrow(effects.80),]),2)
+x90 <-  round(rbind((effects.90[1:7,]/10^8),effects.90[8:nrow(effects.90),]),2)
+x100 <-  round(rbind((effects.100[1:7,]/10^8),effects.100[8:nrow(effects.100),]),2)
+x110 <-  round(rbind((effects.110[1:7,]/10^8),effects.110[8:nrow(effects.110),]),2)
+x120 <-  round(rbind((effects.120[1:7,]/10^8),effects.120[8:nrow(effects.120),]),2)
+
+
+
+
+
+
+
+round(track.changes[,seq(81,120,5)],2)
+round(track.changes[,seq(20,200,10)],2)
+round(track.changes[,seq(70,200,5)],2)
+
+
+
+
+#loss of alleles via genetic drift
+length(unique(x20[9,]))
+length(unique(x20[14,]))
+summary(as.factor(x20[9,]))
+summary(as.factor(x20[14,]))
+
+length(unique(x1["Loc1",]))
+length(unique(x20["Loc1",]))
+summary(as.factor(x20["Loc1",]))
+length(unique(x40["Loc1",]))
+summary(as.factor(x40["Loc1",]))
+length(unique(x60["Loc1",]))
+summary(as.factor(x60["Loc1",]))
+length(unique(x80["Loc1",]))
+summary(as.factor(x80["Loc1",]))
+
+length(unique(x100["Loc1",]))
+summary(as.factor(x100["Loc1",]))
+length(unique(x120["Loc1",]))
+summary(as.factor(x120["Loc1",]))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#comparison of Purcell and our model
+
+library("MASS")
+
+n=5000
+age <- rnorm(n,mean=0,sd=1)
+ba <- .6
+bint <- .4
+
+cor.ls <- 0
+A.level <- mvrnorm(n,mu=c(0,0),Sigma=matrix(c(1,cor.ls,cor.ls,1),nrow=2))
+mm <- A.level[,1]
+
+t1 <- -2
+t2 <- -1
+t3 <- 0
+t4 <- +1
+t5 <- +2
+
+
+#Purcell model
+
+P1 <- ba*A.level[,1] + bint*t1*A.level[,1]
+P2 <- ba*A.level[,1] + bint*t2*A.level[,1]
+P3 <- ba*A.level[,1] + bint*t3*A.level[,1]
+P4 <- ba*A.level[,1] + bint*t4*A.level[,1]
+P5 <- ba*A.level[,1] + bint*t5*A.level[,1]
+
+P.p <- as.data.frame(cbind(A.level,P1,P2,P3,P4,P5))
+P.p2<- as.data.frame(cbind(P1,P2,P3,P4,P5))
+
+#Our model
+
+P1 <- ba*A.level[,1] + bint*t1*A.level[,2]
+P2 <- ba*A.level[,1] + bint*t2*A.level[,2]
+P3 <- ba*A.level[,1] + bint*t3*A.level[,2]
+P4 <- ba*A.level[,1] + bint*t4*A.level[,2]
+P5 <- ba*A.level[,1] + bint*t5*A.level[,2]
+
+P.o <- as.data.frame(cbind(A.level,P1,P2,P3,P4,P5))
+P.o2 <- as.data.frame(cbind(P1,P2,P3,P4,P5))
+
+##results
+round(var(P.p),3)
+round(var(P.o),3)
+
+round(cor(P.p),3)
+round(cor(P.o),3)
+
+round(var(P.p2),3)
+round(var(P.o2),3)
+
+round(cor(P.p2),3)
+round(cor(P.o2),3)
+
+
+mean(P.p)
+mean(P.o)
+
+#plot(P.p2)
+
+new <- round(cbind(age,mm,P.p2),2)
+
+###ALTERNATIVE - PEOPLE AT DIFFERENT AGES
+
+
+at1 <- age-2
+at2 <- age-1
+at3 <- age
+at4 <- age+1
+at5 <- age+2
+
+
+#Purcell model
+
+P1 <- ba*A.level[,1] + bint*at1*A.level[,1]
+P2 <- ba*A.level[,1] + bint*at2*A.level[,1]
+P3 <- ba*A.level[,1] + bint*at3*A.level[,1]
+P4 <- ba*A.level[,1] + bint*at4*A.level[,1]
+P5 <- ba*A.level[,1] + bint*at5*A.level[,1]
+
+Pp <- as.data.frame(cbind(A.level,P1,P2,P3,P4,P5))
+Pp2<- as.data.frame(cbind(P1,P2,P3,P4,P5))
+
+#Our model
+
+P1 <- ba*A.level[,1] + bint*at1*A.level[,2]
+P2 <- ba*A.level[,1] + bint*at2*A.level[,2]
+P3 <- ba*A.level[,1] + bint*at3*A.level[,2]
+P4 <- ba*A.level[,1] + bint*at4*A.level[,2]
+P5 <- ba*A.level[,1] + bint*at5*A.level[,2]
+
+Po <- as.data.frame(cbind(A.level,P1,P2,P3,P4,P5))
+Po2 <- as.data.frame(cbind(P1,P2,P3,P4,P5))
+
+##results
+round(var(Pp),3)
+round(var(Po),3)
+
+round(cor(Pp),3)
+round(cor(Po),3)
+
+round(var(Pp2),3)
+round(var(Po2),3)
+
+round(cor(Pp2),3)
+round(cor(Po2),3)
+
+
+mean(Pp)
+mean(Po)
+
+
+
+#plot(P.p2)
+#plot(P.o2)
+
+
+new2 <- round(cbind(age,mm,Pp2),2)
+
+
+
+rbind(round(new2[1:5,],2),round(new[1:5,],2))
+
+
+new[1:20,]
+new2[1:20,]
+
+
+x <- as.matrix(1:5)
+slope <- vector(length=n)
+for (i in 1:n){
+y <- as.matrix(t(new[i,3:7]))
+slope[i] <- lm(y~x)[[1]][2]}
+
+
+new <- cbind(new,slope)
+
+
+
+x <- as.matrix(1:5)
+slope2 <- vector(length=n)
+for (i in 1:n){
+y <- as.matrix(t(new2[i,3:7]))
+slope2[i] <- lm(y~x)[[1]][2]}
+
+new2 <- cbind(new2,slope2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#old alt code
+abline(h=1,lty=2,col='black')
+if(x["A",1] != 0) {abline(h=x["A",1],lty=2,col='darkblue')}
+if(x["D",1] != 0) {abline(h=x["D",1],lty=2,col='purple') }
+if(x["C",1] != 0) {abline(h=x["C",1],lty=2,col='red')}
+if(x["E",1] != 0) {abline(h=x["E",1],lty=2,col='brown')}
+if(x["AGE",1] != 0) {abline(h=x["AGE",1],lty=2,col='goldenrod')}
+if(x["AGE.by.A",1] != 0) {abline(h=x["AGE.by.A",1],lty=2,col='green')}
+
+
+
+
+
+
+
+
+
+
+plot(x["var.phenotype",],ylim=c(0,10),type='l',lwd=2,col='black',xlab='Generation Number'
+     ,ylab='Variance or Covariance',bty='n',axes=FALSE)
+
+if(x["A",1] != 0) {lines(x["var.A",],col='darkblue',lwd=2)}
+if(x["D",1] != 0) {lines(x["var.D",],col='purple',lwd=2)}
+if(x["C",1] != 0) {lines(x["var.C",],col='red',lwd=2)}
+if(x["E",1] != 0) {lines(x["var.E",],col='brown',lwd=2)}
+if(x["AGE",1] != 0) {lines(x["var.Age",],col='yellow',lwd=2)}
+if(x["AGE.by.A",1] != 0) {lines(x["var.AxAge",],col='green',lwd=2)}
+if(x["VT",1] != 0) {lines(x["cov.AC",],col='orange',lwd=2)}
+

@@ -1,0 +1,3046 @@
+
+Cascade 'genetic and cultural transmission' script for fam size 18
+
+!  By Sarah Medland, Matthew Keller, and Pete Hatemi
+!  version 3/12/2007 - based on  CascadeAlgebra6.doc
+    
+!NOTE: there are no reserved matrix names in this script
+
+!49 Groups as follows
+!1-5 	Place holders for initalising observed data parameters
+!6-9 	Place holders for initalising estimated parameters & constraints
+!10,11	Within person & other basic constraints
+!12-16	Sibling relationship groups
+!17,18	Parent-offspring relationship groups
+!19-29	Avuncular relationship groups
+!30-34	Cousin relationship groups
+!35-38	Grandparent-grandchild relationship groups
+!39-41	Inlaw relationship groups
+!42-46	Data groups - one for each of 5 zyg groups
+!47 	Smmary Group for correlations
+
+#define nvar 1
+#define 2nvar 2
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________model type____________________________________________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#define $va_genmodel Value 1 A 1 1 	!prim. pheno. AM; comment this out if want social homog. 
+!#define $va_genmodel Value 0 A 1 1	!social homog & f only
+#define $va_envmodel Value 1 B 1 1	!social homog.; comment this out if want f only
+!#define $va_envmodel Value 0 B 1 1	! f only
+#define $va_fammodel Value 1 L 1 1 M 1 1	!f-tilda;
+!#define $va_fammodel Value 0 L 1 1	m 1 1 ! no f-tilda
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________starting values_______________________________________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Start values for means, variances, & parameters - that we're using, random values
+#define $st_means        Start .05 P 1 1 Q 1 1                  ! means
+#define $st_var          Start 2 B 1 1 C 1 1                  ! maleV femaleV
+#define $st_Zts          Start  1 S 1 1 V 1 1
+#define $st_Zd           Start .25 P 1 1 
+#define $st_a            Start .2 D 1 1 E 1 1
+#define $st_b            Start  .0 F 1 1
+#define $st_d            Start .2 N 1 1 O 1 1
+#define $st_e            Start .8 W 1 1 X 1 1
+#define $st_s            Start .2 Q 1 1 R 1 1
+#define $st_t            Start  .2 T 1 1 U 1 1
+#define $st_vt           Start .4 A 1 1 B 1 1 C 1 1 D 1 1
+#define $fm~value        Value 1 L 6 1 1
+#define $ff~value        Value 1 M 6 1 1  
+#define $boundaries Bound 0 50 D 1 1 E 1 1 F 1 1 N 1 1 O 1 1 Q 1 1 R 1 1 T 1 1 U 1 1 W 1 1 X 1 1 
+
+!Old start values
+!#define $st_sps          Start .3 A 1 1                       ! Spouses
+!#define $st_po           Start .4 D 1 1 E 1 1 F 1 1 G 1 1     ! Par-off
+!#define $st_dz           Start .5 J 1 1 K 1 1 L 1 1           ! DZr
+!#define $st_sib          Start .5 M 1 1 N 1 1 O 1 1           ! Sib
+!#define $st_mz           Start 1 H 1 1 I 1 1                 ! MZM MZF
+!#define $st_gp-sp	     Start .1 A 1 1 B 1 1 C 1 1 D 1 1
+!#define $st_mz_av        Start .2 A 1 1 B 1 1 Q 1 1 R 1 1 
+!#define $st_dz_av        Start .1 A 1 1 B 1 1 Q 1 1 R 1 1 
+!#define $st_sib_av       Start .1 I 1 1 J 1 1 K 1 1 L 1 1 M 1 1 N 1 1 O 1 1 P 1 1
+!#define $st_mz_co        Start .2 K 1 1 L 1 1 M 1 1 N 1 1 O 1 1 P 1 1
+!#define $st_dz_co        Start .1 K 1 1 L 1 1 M 1 1 N 1 1 O 1 1 P 1 1
+!#define $st_dzo_co       Start .1 K 1 1 L 1 1 M 1 1 N 1 1 
+!#define $st_sp_sp        Start .1 A 1 1 N 1 1 
+!#define $st_inlaws       Start .1 O 1 1 P 1 1 Q 1 1
+
+
+
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Model Parameters______________________________________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#define $genmodel =A6	! model 1 for total phenotypic, 0 for social homogamy & f only
+#define $envmodel =B6	! model 1 for total phenotypic & social hom, 0 for f only 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#define $mean_m	=P40    ! male mean
+#define $mean_f	=Q40	! female mean
+#define $d	=C6	! Assortitive mating
+#define $aM	=D6	! male add gen paths
+#define $aF	=E6	! female add gen paths
+#define $bM	=F6	! male specific add gen paths
+#define $bF	=G6	! male specific add gen paths in females; should = 0 !!
+#define $wM	=H6	! male fa cov paths
+#define $wF	=I6	! female fa cov paths
+#define $vM	=J6	! male fb cov paths
+#define $vF	=K6	! female fb cov paths
+#define $f~M	=L6	! male f~paths; will be 1 almost always; 0 for weird models
+#define $f~F	=M6	! female f~paths; will be 1 almost always; 0 for weird models
+#define $dM	=N6	! male dominance
+#define $dF	=O6	! female dominance
+#define $Zd	=P6	! Cv(dM,dF)
+#define $sM	=Q6	! male sib env
+#define $sF	=R6	! female sib env
+#define $Zs	=S6	! Cv(sM,sF)
+#define $tM	=T6	! male twin env
+#define $tF	=U6	! female twin env
+#define $Zt	=V6	! Cv(tM,tF)
+#define $eM	=W6	! male unique env
+#define $eF	=X6	! female unique env
+#define $m	=A7	! cultural trans. father son
+#define $n	=B7	! cultural trans. father daughter
+#define $o	=C7	! cultural trans. mother son
+#define $p	=D7	! cultural trans. mother daughter
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! variances and covariances
+#define $sigma2M =B1	! Pheno V male   	C19
+#define $sigma2F =C1	! Pheno V female 	C21
+#define $tau2M	=E7	! CV(Pm,P~m) 		C20
+#define $tau2F	=F7	! CV(Pf,P~f) 		C22
+#define $xM	=G7	! Vfm                   C11                   
+#define $xF	=H7	! Vff                   C12
+#define $xMF	=I7	! Cv(Vfm,Vff)           C13
+#define $q	=J7	! Va                    C9
+#define $r	=K7	! Cov(a,b)              C14
+#define $y	=L7	! Vb                    C10
+#define $deltaM =M7	! CV(Am,Pm)             C1
+#define $delta~M =N7	! CV(Am,P~m)            C2 
+#define $deltaF =O7	! CV(Am,Pf)             C3
+#define $delta~F =P7	! CV(Am,P~f)            C4
+#define $piM 	=Q7	! CV(Bm,Pm)             C5
+#define $pi~M 	=R7	! CV(Bm,P~m)            C6
+#define $piF 	=S7	! CV(Bm,Pf)             C7
+#define $pi~F	=T7	! CV(Bm,P~f)            C8
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!twin sibling related constraints
+#define $theta	=U7	! Cv(Adz1,Adz2) 	C23 
+#define $thetaM	=V7	! Cv(Adz1,Pdz2m) 	C24
+#define $thetaF	=W7	! Cv(Adz1,Pdz2f) 	C25 
+#define $theta~M =X7	! Cv(Adz1,P~dz2m) 	C26 
+#define $theta~F =Y7	! Cv(Adz1,P~dz2f) 	C27 
+#define $phi	=A8	! Cv(Bdz1,Bdz2) 	C28 
+#define $phiM	=B8	! Cv(Bdz1,Pdz2m) 	C29 
+#define $phiF	=C8	! Cv(Bdz1,Pdz2f) 	C30 
+#define $phi~M	=D8	! Cv(Bdz1,P~dz2m) 	C31 
+#define $phi~F	=E8	! Cv(Bdz1,P~dz2f) 	C32
+!avuncular related constraints
+#define $xi.Mm	=F8	! Cv(Amz1,Pmzm2.son) 	C33
+#define $xi.Fm	=G8	! Cv(Amz1,Pmzf2.son) 	C34
+#define $xi.Mf	=H8	! Cv(Amz1,Pmzm2.dau) 	C35
+#define $xi.Ff	=I8	! Cv(Amz1,Pmzf2.dau) 	C36
+#define $lambda.Mm =J8	! Cv(Adz1,Pdzm2.son) 	C37
+#define $lambda.Fm =K8	! Cv(Adz1,Pdzf2.son) 	C38
+#define $lambda.Mf =L8	! Cv(Adz1,Pdzm2.dau) 	C39
+#define $lambda.Ff =M8	! Cv(Adz1,Pdzf2.dau) 	C40
+#define $alpha.Mm =N8	! Cv(Bmz1,Pmzm2.son) 	C41
+#define $alpha.Fm =O8	! Cv(Bmz1,Pmzf2.son) 	C42
+#define $alpha.Mf =P8	! Cv(Bmz1,Pmzm2.dau) 	C43
+#define $alpha.Ff =Q8	! Cv(Bmz1,Pmzf2.dau) 	C44
+#define $beta.Mm  =R8	! Cv(Bdz1,Pdzm2.son) 	C45
+#define $beta.Fm  =S8	! Cv(Bdz1,Pdzf2.son) 	C46
+#define $beta.Mf  =T8	! Cv(Bdz1,Pdzm2.dau) 	C47
+#define $beta.Ff  =U8	! Cv(Bdz1,Pdzf2.dau) 	C48
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!relationship constraints
+!MZs
+#define $Phi~mm	=V8	! Cv(PMZ1m,P~MZ2m)	R1~ 
+#define $Phi~ff	=W8	! Cv(PMZ1f,P~MZ2f)	R2~
+#define $Phi~m~m =X8	! Cv(P~MZ1m,P~MZ2m)	R1~~	
+#define $Phi~f~f =Y8	! Cv(P~MZ1f,P~MZ2f)	R2~~
+!DZs
+#define $Omega~mm =A9	! Cv(PDZ1m,P~DZ2m)	R3~	
+#define $Omega~ff =B9	! Cv(PDZ1f,P~DZ2f)	R4~
+#define $Omega~mf =C9	! Cv(PDZ1m,P~DZ2f)      R5b~
+#define $Omega~fm =Z8	! Cv(PDZ1f,P~DZ2m)      R5a~
+#define $Omega~m~m =D9	! Cv(P~DZ1m,P~DZ2m)	R3~~	
+#define $Omega~f~f =E9	! Cv(P~DZ1f,P~DZ2f)	R4~~
+#define $Omega~m~f =F9	! Cv(P~DZ1m,P~DZ2f)	R5~~
+!Sibs
+#define $Xi~mm	=G9	! Cv(PSib1m,P~Sib2m)	R6~	
+#define $Xi~ff	=H9	! Cv(PSib1f,P~Sib2f)	R7~
+#define $Xi~mf	=I9	! Cv(PSib1m,P~Sib2f)	R8b~
+#define $Xi~fm	=Z7	! Cv(PSib1f,P~Sib2m)    R8a~
+#define $Xi~m~m	=J9	! Cv(P~Sib1m,P~Sib2m)	R6~~	
+#define $Xi~f~f	=K9	! Cv(P~Sib1f,P~Sib2f)   R7~~
+#define $Xi~m~f	=L9	! Cv(P~Sib1m,P~Sib2f)   R8~~
+!parent offsping
+#define $Delta~Mm =M9	! Cv(PFa,P~son)         R10~     
+#define $Delta~Mf =N9	! Cv(PFa,P~daughter)    R12 !R11~
+#define $Delta~Fm =O9	! Cv(PMo,P~son)         R11 !R12~
+#define $Delta~Ff =P9	! Cv(PMo,P~daughter)    R13~
+!MZ Uncles
+#define $Gamma~mM =Q9	! Cv(Pneph,P~MZm)       R14~
+#define $Gamma~fM =R9	! Cv(Pneice,P~MZm)      R15~   
+!MZ Aunts
+#define $Gamma~mF =S9	! Cv(Pneph,P~MZf)       R16~
+#define $Gamma~fF =T9	! Cv(Pneice,P~MZf)      R17~
+!DZ Uncles
+#define $Theta~mMM =U9	! Cv(Pneph,P~DZm)       R18~
+#define $Theta~fMM =V9	! Cv(Pneice,P~DZm)      R19~
+#define $Theta~mFM =W9	! Cv(Pneph,P~DZfm)      R20~
+#define $Theta~fFM =X9	! Cv(Pneice,P~DZfm)     R21~
+!DZ Aunts                                               
+#define $Theta~mFF =Y9	! Cv(Pneph,P~DZm)       R22~
+#define $Theta~fFF =Z9	! Cv(Pneice,P~DZm)      R23~
+#define $Theta~mMF =Y6	! Cv(Pneph,P~DZmf)      R24~
+#define $Theta~fMF =Z6	! Cv(Pneice,P~DZmf)     R25~
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Observed Covariances__________________________________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________NUCELAR FAMILY______________________
+#define $spouse		=A1 ! Sps cov    R9 
+#define $f-son		=D1 ! DeltaMm    R10
+#define $m-son		=E1 ! DeltaFm    R11
+#define $f-dau		=F1 ! DeltaMf    R12
+#define $m-dau		=G1 ! DeltaFf    R13
+#define $mm-mz		=H1 ! PhiMM      R1 
+#define $ff-mz		=I1 ! PhiFF      R2 
+#define $mm-dz		=J1 ! GammaMM    R3 
+#define $ff-dz		=K1 ! GammaFF    R4 
+#define $os-dz		=L1 ! GammaOS    R5 
+#define $msib		=M1 ! XiMM       R6 
+#define $fsib		=N1 ! XiFF       R7 
+#define $ossib  	=O1 ! XiOS       R8 
+  
+!_________INLAWS & GRANDPARENTS____________
+! gf/gm-(sex)spouce
+#define $gf-msp 	=A2 ! R75
+#define $gf-fsp 	=B2 ! R73
+#define $gm-msp 	=C2 ! R76
+#define $gm-fsp 	=D2 ! R74
+! gf/gm-gchild                   
+#define $patgf-gd   	=E2 ! R54
+#define $patgf-gs   	=F2 ! R50
+#define $patgm-gd   	=G2 ! R56
+#define $patgm-gs   	=H2 ! R52
+#define $matgf-gd   	=Q2 ! R55
+#define $matgf-gs   	=R2 ! R51
+#define $matgm-gd   	=S2 ! R57
+#define $matgm-gs   	=X2 ! R53
+! twin-spouse                        
+#define $mzm-sp		=A3 ! R58
+#define $mzf-sp		=B3 ! R59
+#define $dzm-sp		=A4 ! R60
+#define $dzf-sp		=B4 ! R61
+#define $dzo-mmsp	=A5 ! R62
+#define $dzo-ffsp	=B5 ! R63
+! sib-spouse - by sex                
+#define $s-sp-m		=O5 ! R66
+#define $s-sp-f		=P5 ! R67
+#define $s-sp-mf	=Q5 ! R64
+#define $s-sp-fm	=X5 ! R65
+! spouse-spouse by zyg               
+#define $mzm-sp_sp	=Q3 ! R68
+#define $mzf-sp_sp	=R3 ! R69
+#define $dzm-sp_sp	=Q4 ! R70
+#define $dzf-sp_sp	=R4 ! R71
+#define $dzo-sp_sp	=N5 ! R72
+
+    
+!________AVUNCULAR_________________________
+! biological avunculars by twin type
+!m/d/s(mz/dz/sib)m/f(male/female)
+#define $mm-nep		=C3 !Gamma mM    R14 
+#define $mm-nei		=D3 !Gamma fM    R15
+#define $ff-nep		=E3 !Gamma mF    R16
+#define $ff-nei		=F3 !Gamma fF    R17
+#define $dm-nep		=C4 !Theta mM    R18
+#define $dm-nei		=D4 !Theta fM    R19 
+#define $df-nep		=E4 !Theta mF    R23 
+#define $df-nei		=F4 !Theta fF    R23 
+#define $dom-nep	=C5 !Theta mFM   R20 
+#define $dom-nei	=D5 !Theta fFM   R21
+#define $dof-nep	=E5 !Theta mMF   R24
+#define $dof-nei	=F5 !Theta fMF   R25      
+!aunts and uncles who from same sex siblings
+#define $ss-uncle-nep	=I2 !  R26
+#define $ss-uncle-nei	=J2 !  R27
+#define $ss-aunt-nep	=K2 !  R30
+#define $ss-aunt-nei	=L2 !  R31
+!aunts and uncles who from os siblings
+#define $os-uncle-nep	=M2 !  R28
+#define $os-uncle-nei	=N2 !  R29
+#define $os-aunt-nep	=O2 !  R32
+#define $os-aunt-nei	=P2 !  R33
+!________AVUNCULARS married in_________________________
+#define $mmsp-nep	=G3 !  R79
+#define $mmsp-nei	=H3 !  R80
+#define $mfsp-nep	=I3 !  R77
+#define $mfsp-nei	=J3 !  R78
+#define $dmsp-nep	=G4 !  R81
+#define $dmsp-nei	=H4 !  R82
+#define $dfsp-nep	=I4 !  R85
+#define $dfsp-nei	=J4 !  R86
+#define $domsp-nep	=G5 !  R83
+#define $domsp-nei	=H5 !  R84
+#define $dofsp-nep	=I5 !  R87
+#define $dofsp-nei	=J5 !  R88
+!________COUSINS by twin type__________________
+!m/d(mzm-f/dzm-f-o)c(cousin)-mm/ff/os
+#define $mmc-mm		=K3 !  R34
+#define $mmc-ff		=L3 !  R36
+#define $mmc-os		=M3 !  R35
+#define $mfc-mm		=N3 !  R37
+#define $mfc-ff		=O3 !  R39
+#define $mfc-os		=P3 !  R38
+#define $dmc-mm		=K4 !  R40
+#define $dmc-ff		=L4 !  R42
+#define $dmc-os		=M4 !  R41
+#define $dfc-mm		=N4 !  R43
+#define $dfc-ff		=O4 !  R45
+#define $dfc-os		=P4 !  R44
+#define $doc-mm		=K5 !  R46
+#define $doc-ff		=L5 !  R49
+#define $doc-mf		=M5 !  R47
+#define $doc-fm		=R5 !  R48
+!______________________________________________
+
+
+    
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Observed Parameter Initialisation groups 1-5__________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    
+!GROUP1: Initalise placeholders for the observed data
+!Nuclear Family Group
+Calculation Ngroups=55
+Begin Matrices;
+!_________NUCELAR FAMILY______________________)
+A symm nvar nvar free ! spouse	(A1)          R9
+B symm nvar nvar free ! sigma2M		(B1)  C19
+C symm nvar nvar free ! sigma2F		(C1)  C21
+D symm nvar nvar free ! f-son		(D1)  R10
+E symm nvar nvar free ! m-son		(E1)  R11
+F symm nvar nvar free ! f-dau		(F1)  R12
+G symm nvar nvar free ! m-dau		(G1)  R13
+H symm nvar nvar free ! mm-mz		(H1)  R1
+I symm nvar nvar free ! ff-mz		(I1)  R2
+J symm nvar nvar free ! mm-dz		(J1)  R3
+K symm nvar nvar free ! ff-dz		(K1)  R4
+L symm nvar nvar free ! os-dz		(L1)  R5
+M symm nvar nvar free ! msib		(M1)  R6
+N symm nvar nvar free ! fsib		(N1)  R7
+O symm nvar nvar free ! ossib  		(O1)  R8  
+U full nvar nvar                             
+End Matrices;                                 
+!Start values
+Ma U 9
+Begin Algebra;
+P = 
+ B | A | D | D | D | D | F | F_
+ A | C | E | E | E | E | G | G_
+ D | E | B | H | M | M | O | O_
+ D | E | H | B | M | M | O | O_
+ D | E | M | M | B | M | O | O_
+ D | E | M | M | M | B | O | O_
+ F | G | O | O | O | O | C | N_
+ F | G | O | O | O | O | N | C ;  !mzm
+Q=
+ B | A | F | F | D | D | F | F_
+ A | C | G | G | E | E | G | G_
+ F | G | C | I | O | O | N | N_
+ F | G | I | C | O | O | N | N_
+ D | E | O | O | B | M | O | O_
+ D | E | O | O | M | B | O | O_
+ F | G | N | N | O | O | C | N_
+ F | G | N | N | O | O | N | C ;  !mzf
+R=
+ B | A | D | D | D | D | F | F_
+ A | C | E | E | E | E | G | G_
+ D | E | B | J | M | M | O | O_
+ D | E | J | B | M | M | O | O_
+ D | E | M | M | B | M | O | O_
+ D | E | M | M | M | B | O | O_
+ F | G | O | O | O | O | C | N_
+ F | G | O | O | O | O | N | C ;  !dzm
+S=
+ B | A | F | F | D | D | F | F_
+ A | C | G | G | E | E | G | G_
+ F | G | C | K | O | O | N | N_
+ F | G | K | C | O | O | N | N_
+ D | E | O | O | B | M | O | O_
+ D | E | O | O | M | B | O | O_
+ F | G | N | N | O | O | C | N_
+ F | G | N | N | O | O | N | C ;  !dzf
+T= 
+ B | A | F | D | D | D | F | F_
+ A | C | G | E | E | E | G | G_
+ F | G | C | L | O | O | N | N_
+ D | E | L | B | M | M | O | O_
+ D | E | O | M | B | M | O | O_
+ D | E | O | M | M | B | O | O_
+ F | G | N | O | O | O | C | N_
+ F | G | N | O | O | O | N | C ;  !dzo
+V =  A_D_D_F_F ;              !spouse father offspring YELLOW
+W =  A_E_E_G_G ;              !spouse mother offspring
+X =
+B | D | D | F | F_
+D | B | M | O | O_
+D | M | B | O | O_
+F | O | O | C | N_
+F | O | O | N | C ;                  !father brothers and sisters
+Y =
+C | E | E | G | G_
+E | B | M | O | O_
+E | M | B | O | O_
+G | O | O | C | N_
+G | O | O | N | C ;                  !mother brothers and sisters
+!sumary matrix
+Z=
+B | C | U | U_
+U | U | A | U_ 
+H | I | U | U_
+J | K | L | L_
+M | N | O | O_
+D | G | F | E;
+End Algebra;
+ Label Row Z mztw dztw si pc 
+  Label Col Z Mm Ff Mf Fm
+ !$st_sps
+ !$st_po
+ !$st_dz
+ !$st_sib
+ !$st_mz
+ $st_var
+End
+
+     
+GROUP2: Initalise placeholders  for the observed data
+!grand parents & non-twin avunc
+Calculation Ngroups=
+Begin Matrices;
+!_________INLAWS & GRANDPARENTS____________)
+! gf/gm-(sex)spouce)
+A symm nvar nvar free ! gf-msp 	 	(A2) R75
+B symm nvar nvar free ! gf-fsp 	 	(B2) R73
+C symm nvar nvar free ! gm-msp 	 	(C2) R76
+D symm nvar nvar free ! gm-fsp 	 	(D2) R74
+E symm nvar nvar free ! patgf-gd   	(E2) R54
+F symm nvar nvar free ! patgf-gs   	(F2) R50
+G symm nvar nvar free ! patgm-gd   	(G2) R56
+H symm nvar nvar free ! patgm-gs   	(H2) R52
+Q symm nvar nvar free ! matgf-gd   	(Q2) R55
+R symm nvar nvar free ! matgf-gs   	(R2) R51
+S symm nvar nvar free ! matgm-gd   	(S2) R57
+X symm nvar nvar free ! matgm-gs   	(X2) R53 
+!aunts and uncles who are related by same sex siblings)
+I symm nvar nvar free ! ss-uncle-nep	(I2) R26
+J symm nvar nvar free ! ss-uncle-nei	(J2) R27
+K symm nvar nvar free ! ss-aunt-nep	(K2) R30
+L symm nvar nvar free ! ss-aunt-nei	(L2) R31
+!aunts and uncles who are related by os siblings)
+M symm nvar nvar free ! os-uncle-nep	(M2) R28
+N symm nvar nvar free ! os-uncle-nei	(N2) R29
+O symm nvar nvar free ! os-aunt-nep	(O2) R32
+P symm nvar nvar free ! os-aunt-nei	(P2) R33
+End Matrices;
+Begin Algebra;
+T = A|C_R|X_R|X_Q|S_Q|S ;  ! MAT grand parent - grand child + M spouse
+U = B|D_F|H_F|H_E|G_E|G ;  ! PAT grand parent - grand child + F spouse
+!non-twin avuncs 
+! twin is male - spouse is female
+V = 
+  I | I | O | O _ ! nephews
+  I | I | O | O _ ! nephews
+  J | J | P | P _ ! neices
+  J | J | P | P ; ! neices
+! twin is female - spouse is male
+W = 
+  M | M | K | K _ ! nephews
+  M | M | K | K _ ! nephews
+  N | N | L | L _ ! neices
+  N | N | L | L ; ! neices
+Z=
+F|G|E|H_
+R|S|Q|X_
+A|D|B|C_
+I|O|J|P_
+M|L|N|K;
+End Algebra;
+  Label Row Z gp_pat gp_mat gp_sp pat_avunc mat_avunc
+  Label Col Z Mm Ff Mf Fm
+!$st_gp-sp
+!$st_sib_av
+END
+
+      
+GROUP3: Initalise placeholders  for the observed data
+!MZ Avuncular
+Calculation Ngroups=
+Begin Matrices;
+A symm nvar nvar free ! mzm-sp		(A3)  R58
+B symm nvar nvar free ! mzf-sp		(B3)  R59
+C symm nvar nvar free ! mm-nep		(C3)  R14
+D symm nvar nvar free ! mm-nei		(D3)  R15
+E symm nvar nvar free ! mf-nep		(E3)  R16
+F symm nvar nvar free ! mf-nei		(F3)  R17
+G symm nvar nvar free ! mmsp-nep	(G3)  R79
+H symm nvar nvar free ! mmsp-nei	(H3)  R80
+I symm nvar nvar free ! mfsp-nep	(I3)  R77
+J symm nvar nvar free ! mfsp-nei	(J3)  R78
+K symm nvar nvar free ! mmc-mm		(K3)  R34
+L symm nvar nvar free ! mmc-ff		(L3)  R36
+M symm nvar nvar free ! mmc-os		(M3)  R35
+N symm nvar nvar free ! mfc-mm		(N3)  R37
+O symm nvar nvar free ! mfc-ff		(O3)  R39
+P symm nvar nvar free ! mfc-os		(P3)  R38
+Q symm nvar nvar free ! mzm-sp-sp	(Q3)  R68
+R symm nvar nvar free ! mzf-sp-sp	(R3)  R69
+End Matrices ;
+Begin Algebra ;
+S=A_C_C_D_D; !MZM co-twin spouse & avunc
+T=B_E_E_F_F; !MZF co-twin spouse & avunc
+!spouse-spouse, avunc & cousins
+!MZM spouses with their nephews and neices
+U= 
+ Q | G | G | H | H_
+ G | K | K | M | M_ 
+ G | K | K | M | M_
+ H | M | M | L | L_
+ H | M | M | L | L;
+!MZF
+V=
+ R | I | I | J | J_
+ I | N | N | P | P_
+ I | N | N | P | P_
+ J | P | P | O | O_
+ J | P | P | O | O;
+Z=
+C|F|D|E_
+I|H|J|G_
+Q|R|A|B_
+K|L|M|M_
+N|O|P|P;
+End Algebra;
+  Label Row Z avunc_mz avunc_mzsp mzsp mzm_co mzf_co
+  Label Col Z Mm Ff Mf Fm
+!$st_mz_av
+!$st_mz_co
+End
+
+      
+GROUP4: Initalise placeholders  for the observed data
+!DZ Avuncular
+Calculation Ngroups=
+Begin Matrices;
+A symm nvar nvar free ! dzm-sp		(A4)  R59
+B symm nvar nvar free ! dzf-sp		(B4)  R60
+C symm nvar nvar free ! dm-nep		(C4)  R18
+D symm nvar nvar free ! dm-nei		(D4)  R19
+E symm nvar nvar free ! df-nep		(E4)  R22
+F symm nvar nvar free ! df-nei		(F4)  R23
+G symm nvar nvar free ! dmsp-nep	(G4)  R81
+H symm nvar nvar free ! dmsp-nei	(H4)  R82
+I symm nvar nvar free ! dfsp-nep	(I4)  R85
+J symm nvar nvar free ! dfsp-nei	(J4)  R86
+K symm nvar nvar free ! dmc-mm		(K4)  R40
+L symm nvar nvar free ! dmc-ff		(L4)  R42
+M symm nvar nvar free ! dmc-os		(M4)  R41
+N symm nvar nvar free ! dfc-mm		(N4)  R43
+O symm nvar nvar free ! dfc-ff		(O4)  R45
+P symm nvar nvar free ! dfc-os		(P4)  R44
+Q symm nvar nvar free ! dzm-sp-sp	(Q4)  R70
+R symm nvar nvar free ! dzf-sp-sp	(R4)  R71
+End Matrices
+Begin Algebra ;
+S=A_C_C_D_D; !DZM co-twin spouse & avunc
+T=B_E_E_F_F; !DZF co-twin spouse & avunc
+!spouse-spouse, avunc & cousins
+!DZM spouses with their nephews and neices
+U= 
+ Q | G | G | H | H_
+ G | K | K | M | M_ 
+ G | K | K | M | M_
+ H | M | M | L | L_
+ H | M | M | L | L;
+!DZF
+V=
+ R | I | I | J | J_
+ I | N | N | P | P_
+ I | N | N | P | P_
+ J | P | P | O | O_
+ J | P | P | O | O;
+Z=
+C|F|D|E_
+I|H|J|G_
+Q|R|A|B_
+K|L|M|M_
+N|O|P|P;
+End Algebra;
+  Label Row Z avunc_dz avunc_dzsp dzsp dzm_co dzf_co
+  Label Col Z Mm Ff Mf Fm
+!$st_dz_av
+!$st_dz_co
+End
+
+      
+GROUP5: Initalise placeholders  for the observed data
+!DZ OS Avuncular
+Calculation Ngroups=
+Begin Matrices;
+A symm nvar nvar free ! dzo-mmsp	(A5)  R62 
+B symm nvar nvar free ! dzo-ffsp	(B5)  R63
+C symm nvar nvar free ! dom-nep		(C5)  R20
+D symm nvar nvar free ! dom-nei		(D5)  R21
+E symm nvar nvar free ! dof-nep		(E5)  R24
+F symm nvar nvar free ! dof-nei		(F5)  R25
+G symm nvar nvar free ! domsp-nep	(G5)  R83
+H symm nvar nvar free ! domsp-nei	(H5)  R84
+I symm nvar nvar free ! dofsp-nep	(I5)  R87
+J symm nvar nvar free ! dofsp-nei	(J5)  R88
+K symm nvar nvar free ! doc-mm		(K5)  R46
+L symm nvar nvar free ! doc-ff		(L5)  R49
+M symm nvar nvar free ! doc-mf		(M5)  R47
+R symm nvar nvar free ! doc-fm		(R5)  R48
+N symm nvar nvar free ! dzo-sp-sp	(N5)  R72
+!Sibling inlaws - non twin                    
+O symm nvar nvar free ! s-sp-m		(O5)  R66
+P symm nvar nvar free ! s-sp-f		(P5)  R67
+Q symm nvar nvar free ! s-sp-mf		(Q5)  R64
+X symm nvar nvar free ! s-sp-fm		(X5)  R65
+End Matrices ;
+Begin Algebra ;
+S=A_C_C_D_D; !DZ-OSM co-twin spouse & avunc
+T=B_E_E_F_F; !DZ-OSF co-twin spouse & avunc
+!spouse-spouse, avunc & cousins
+!MZM spouses with their nephews and neices
+U= 
+ N | G | G | H | H_
+ I | K | K | R | R_ 
+ I | K | K | R | R_
+ J | M | M | L | L_
+ J | M | M | L | L;
+V=  Q | Q | P | P ; ! male spouse of female twin - 2 male sibs, 2 female sibs
+W=  O | O | X | X ; ! female spouse of male twin - 2 male sibs, 2 female sibs
+Z=
+C|F|D|E_
+I|H|J|G_
+A|B|N|N_
+K|L|M|R_
+O|P|Q|X;
+End Algebra;
+  Label Row Z avunc_dzo avunc_dzosp dzosp dzom_co sp_sib
+  Label Col Z Mm Ff Mf Fm
+!$st_sp_sp
+!$st_dzo_co
+!$st_inlaws
+End
+
+      
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Model Parameter Initialisation groups 6-9_____________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+GROUP6: Initalise placeholders for estimated parameters
+Calculation 
+Begin Matrices;
+A full 1 1  		!$genmodel	! controls type of AM being modeled
+B full 1 1  		!$envmodel	! controls type of AM being modeled
+C symm nvar nvar free 	!$d		! Assortitive mating copath (d)
+D low nvar nvar free 	!$aM		! male add gen paths
+E low nvar nvar free 	!$aF		! female add gen paths
+F low nvar nvar free 	!$bM		! male specific add gen paths
+G zero nvar nvar  	!$bF		! male specific add gen paths in females; equals 0
+H symm nvar nvar free 	!$wM		! male fa cov paths
+I symm nvar nvar free 	!$wF		! female fa cov paths
+J symm nvar nvar free 	!$vM		! male fb cov paths
+K symm nvar nvar free 	!$vF		! female fb cov paths
+L low nvar nvar    	!$f~M		! male f~paths; almost always = 1
+M low nvar nvar   	!$f~F		! female f~paths; almost always = 1
+N low nvar nvar free 	!$dM		! male dominance
+O low nvar nvar free 	!$dF		! female dominance
+P symm nvar nvar free 	!$Zd		! Cv(dM,dF)
+Q low nvar nvar free 	!$sM		! male sib env
+R low nvar nvar free 	!$sF		! female sib env
+S symm nvar nvar free 	!$Zs		! Cv(sM,sF)
+T low nvar nvar free 	!$tM		! male twin env
+U low nvar nvar free 	!$tF		! female twin env
+V symm nvar nvar free 	!$Zt		! Cv(tM,tF)
+W low nvar nvar free 	!$eM		! male unique env
+X low nvar nvar free 	!$eF		! female unique env
+!DZ Aunts
+Y symm nvar nvar free !$Theta~mMF	! Cv(Pneph,P~DZmf)  R24~
+Z symm nvar nvar free !$Theta~fMF	! Cv(Pneice,P~DZmf) R25~
+End Matrices;
+!starting values
+Start all .1
+$va_genmodel
+$va_envmodel
+$va_fammodel
+$ff~value
+$fm~value
+$st_a
+$st_b
+$st_d
+$st_e
+$st_s
+$st_t
+$st_Zts
+$st_Zd
+!___________________________________________________________________________________
+! fixed values
+ Matrix C .00399960          ! start value for assortative mating
+ Matrix D .79659650     ! start value for male additive genetic path
+ Matrix E .80273128     ! start value for female additive genetic path
+ Matrix F  0.0000000          ! start value for male-specific additive genetic path
+ Matrix H .17683963        ! start value for correlation between am and cm
+ Matrix I .18413446        ! start value for correlation between af and cf
+ Matrix J .00000000        ! start value for correlation between b and cm
+ Matrix K .00000000        ! start value for correlation between b and cf
+ Matrix N .00005135         ! start value for male dominance genetic path
+ Matrix O .00000000         ! start value for female dominance genetic path
+ Matrix Q .16316605         ! start value for male shared environmental path
+ Matrix R .11889818         ! start value for female shared environmental path
+ Matrix T .00001289         ! start value for male twin environmental path
+ Matrix U .00000180         ! start value for female twin environmental path
+ Matrix P .24999914 !.99999656         ! start value for correlation between dm and df
+ Matrix S 1         ! start value for correlatino between sm and sf
+ Matrix V .99156160         ! start value for correlation between tm and tf
+ Matrix W .54177458
+ Matrix X .54816398
+!___________________________________________________________________________________
+Bound -.25 .25 P 1 1     
+!Constrain Dominance cov b/w M & F
+Bound -1 1   S 1 1     !Constrain Sibling cov b/w M & F
+Bound -1 1   V 1 1     !Constrain Twin cov b/w M & F
+$boundaries  
+END
+
+    
+GROUP7: Initalise placeholders for estimated parameters/constraints
+Calculation 
+Begin Matrices;
+A low nvar nvar free !$m		! cultural trans. father son
+B low nvar nvar free !$n		! cultural trans. father daughter
+C low nvar nvar free !$o		! cultural trans. mother son
+D low nvar nvar free !$p		! cultural trans. mother daughter
+! variances and covariances
+E symm nvar nvar free !$tau2M		! CV(Pm,P~m)            C20
+F symm nvar nvar free !$tau2F		! CV(Pf,P~f)            C22
+G symm nvar nvar free !$xM		! Vfm                   C11
+H symm nvar nvar free !$xF		! Vff                   C12
+I symm nvar nvar free !$xMF		! Cv(Vfm,Vff)           C13
+J symm nvar nvar free !$q		! Va                    C9 
+K symm nvar nvar free !$r		! Cov(a,b)              C14
+L symm nvar nvar free !$y		! Vb                    C10
+M symm nvar nvar free !$deltaM 		! CV(Am,Pm)             C1 
+N symm nvar nvar free !$delta~M 	! CV(Am,P~m)            C2 
+O symm nvar nvar free !$deltaF 		! CV(Am,Pf)             C3 
+P symm nvar nvar free !$delta~F		! CV(Am,P~f)            C4 
+Q symm nvar nvar free !$piM 		! CV(Bm,Pm)             C5 
+R symm nvar nvar free !$pi~M 		! CV(Bm,P~m)            C6 
+S symm nvar nvar free !$piF 		! CV(Bm,Pf)             C7 
+T symm nvar nvar free !$pi~F		! CV(Bm,P~f)            C8 
+!twin sibling related constraints
+V symm nvar nvar free !$thetaM		! Cv(Adz1,Pdz2m) 	C24
+W symm nvar nvar free !$thetaF		! Cv(Adz1,Pdz2f) 	C25 
+X symm nvar nvar free !$theta~M		! Cv(Adz1,P~dz2m) 	C26 
+Y symm nvar nvar free !$theta~F		! Cv(Adz1,P~dz2f) 	C27
+Z symm nvar nvar free !$Xi~fm		! Cv(PSib1f,P~Sib2m)    R8a~
+End Matrices;
+Start All .2
+$st_vt
+!$st_covB
+!___________________________________________________________________________________
+! fixed values
+ Matrix A .18059185      ! start value for male paternal cultural transmission
+ Matrix B .18761769      ! start value for female paternal cultural transmission
+ Matrix C .17722387      ! start value for male maternal cultural transmission
+ Matrix D .18495258      ! start value for female maternal cultural transmission
+ Matrix E 1.32498762         ! start value for male variance
+ Matrix F 1.35044246         ! start value for female variance
+ Matrix G .08608557         ! start value for male environmental variance
+ Matrix H .09333196         ! start value for female environmental variance
+ Matrix I .08963534        ! start value for male-female environmental variance
+ Matrix J 1.00386650          ! start value for male additive genetic variance
+ Matrix K 0.00000000          ! start value for correlation between am and b
+ Matrix L 1          ! start value for male-spec additive genetic variance
+!___________________________________________________________________________________
+End
+
+    
+GROUP8: Initalise placeholders for constraints
+Calculation 
+Begin Matrices;
+B symm nvar nvar free !$phiM		! Cv(Bdz1,Pdz2m) 	C29 
+C symm nvar nvar free !$phiF		! Cv(Bdz1,Pdz2f) 	C30 
+D symm nvar nvar free !$phi~M		! Cv(Bdz1,P~dz2m) 	C31 
+E symm nvar nvar free !$phi~F		! Cv(Bdz1,P~dz2f) 	C32
+!avuncular related constraints
+F symm nvar nvar free !$xi.Mm		! Cv(Amz1,Pmzm2.son) 	C33
+G symm nvar nvar free !$xi.Fm		! Cv(Amz1,Pmzf2.son) 	C34
+H symm nvar nvar free !$xi.Mf		! Cv(Amz1,Pmzm2.dau) 	C35
+I symm nvar nvar free !$xi.Ff		! Cv(Amz1,Pmzf2.dau) 	C36
+J symm nvar nvar free !$lambda.Mm	! Cv(Adz1,Pdzm2.son) 	C37
+K symm nvar nvar free !$lambda.Fm	! Cv(Adz1,Pdzf2.son) 	C38
+L symm nvar nvar free !$lambda.Mf	! Cv(Adz1,Pdzm2.dau) 	C39
+M symm nvar nvar free !$lambda.Ff	! Cv(Adz1,Pdzf2.dau) 	C40
+N symm nvar nvar free !$alpha.Mm	! Cv(Bmz1,Pmzm2.son) 	C41
+O symm nvar nvar free !$alpha.Fm	! Cv(Bmz1,Pmzf2.son) 	C42
+P symm nvar nvar free !$alpha.Mf	! Cv(Bmz1,Pmzm2.dau) 	C43
+Q symm nvar nvar free !$alpha.Ff	! Cv(Bmz1,Pmzf2.dau) 	C44
+R symm nvar nvar free !$beta.Mm		! Cv(Bdz1,Pdzm2.son) 	C45
+S symm nvar nvar free !$beta.Fm		! Cv(Bdz1,Pdzf2.son) 	C46
+T symm nvar nvar free !$beta.Mf		! Cv(Bdz1,Pdzm2.dau) 	C47
+U symm nvar nvar free !$beta.Ff		! Cv(Bdz1,Pdzf2.dau) 	C48
+!relationship constraints
+!MZs
+V symm nvar nvar free !$Phi~mm		! Cv(PMZ1m,P~MZ2m)	R1~	
+W symm nvar nvar free !$Phi~ff		! Cv(PMZ1f,P~MZ2f)      R2~
+X symm nvar nvar free !$Phi~m~m		! Cv(P~MZ1m,P~MZ2m)	R1~~
+Y symm nvar nvar free !$Phi~f~f		! Cv(P~MZ1f,P~MZ2f)     R2~~
+Z symm nvar nvar free !$Omega~fm       	! Cv(PDZ1f,P~DZ2m)      R5a~
+End Matrices;
+Start All .2
+End
+
+    
+GROUP9: Initalise placeholders for constraints
+Calculation 
+Begin Matrices;
+!DZs
+A symm nvar nvar free !$Omega~mm	! Cv(PDZ1m,P~DZ2m)       R3~     	
+B symm nvar nvar free !$Omega~ff	! Cv(PDZ1f,P~DZ2f)       R4~ 
+C symm nvar nvar free !$Omega~mf	! Cv(PDZ1m,P~DZ2f)       R5~ 
+D symm nvar nvar free !$Omega~m~m	! Cv(P~DZ1m,P~DZ2m)      R3~~	
+E symm nvar nvar free !$Omega~f~f	! Cv(P~DZ1f,P~DZ2f)      R4~~
+F symm nvar nvar free !$Omega~m~f	! Cv(P~DZ1m,P~DZ2f)      R5~~
+!Sibs                                                                
+G symm nvar nvar free !$Xi~mm		! Cv(PSib1m,P~Sib2m)     R6~     	
+H symm nvar nvar free !$Xi~ff		! Cv(PSib1f,P~Sib2f)     R7~ 
+I symm nvar nvar free !$Xi~mf		! Cv(PSib1m,P~Sib2f)     R8~ 
+J symm nvar nvar free !$Xi~m~m		! Cv(P~Sib1m,P~Sib2m)    R6~~	
+K symm nvar nvar free !$Xi~f~f		! Cv(P~Sib1f,P~Sib2f)    R7~~
+L symm nvar nvar free !$Xi~m~f		! Cv(P~Sib1m,P~Sib2f)    R8~~
+!parent offsping                                                     
+M symm nvar nvar free !$Delta~Mm	! Cv(PFa,P~son)          R10~
+N symm nvar nvar free !$Delta~Mf	! Cv(PFa,P~daughter)     R12 !R11~
+O symm nvar nvar free !$Delta~Fm	! Cv(PMo,P~son)          R11 !R12~
+P symm nvar nvar free !$Delta~Ff	! Cv(PMo,P~daughter)     R13~
+!MZ Uncles                                                           
+Q symm nvar nvar free !$Gamma~mM	! Cv(Pneph,P~MZm)        R14~
+R symm nvar nvar free !$Gamma~fM	! Cv(Pneice,P~MZm)       R15~
+!MZ Aunts                                                            
+S symm nvar nvar free !$Gamma~mF	! Cv(Pneph,P~MZf)        R16~
+T symm nvar nvar free !$Gamma~fF	! Cv(Pneice,P~MZf)       R17~
+!DZ Uncles                                                           
+U symm nvar nvar free !$Theta~mMM	! Cv(Pneph,P~DZm)        R18~
+V symm nvar nvar free !$Theta~fMM	! Cv(Pneice,P~DZm)       R19~
+W symm nvar nvar free !$Theta~mFM	! Cv(Pneph,P~DZfm)       R20~
+X symm nvar nvar free !$Theta~fFM	! Cv(Pneice,P~DZfm)      R21~
+!DZ Aunts                                                            
+Y symm nvar nvar free !$Theta~mFF	! Cv(Pneph,P~DZm)        R22~
+Z symm nvar nvar free !$Theta~fFF	! Cv(Pneice,P~DZm)       R23~
+End Matrices;
+Start All .2
+End
+
+    
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Model Parameter Algebra groups 10 & 11________________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+G10 : Within person or MZ-related constraints plus Va and Vb
+!parts of constriant equations 1-10
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+Z full 1 1	=$genmodel    	! controls type of AM being modeled
+U unit nvar nvar
+Q symm nvar nvar =$q		! Va                                 C9
+Y symm nvar nvar =$y		! Vb                                 C10
+R symm nvar nvar =$r		! Cov(a,b)                           C14
+D symm nvar nvar =$d		! Assortitive mating copath
+!
+A symm nvar nvar =$deltaM 	! CV(Am,Pm)                          C1
+B symm nvar nvar =$delta~M 	! CV(Am,P~m)                         C2
+C symm nvar nvar =$deltaF 	! CV(Am,Pf)                          C3
+E symm nvar nvar =$delta~F	! CV(Am,P~f)                         C4
+F symm nvar nvar =$piM 		! CV(Bm,Pm)                          C5
+G symm nvar nvar =$pi~M 	! CV(Bm,P~m)                         C6
+H symm nvar nvar =$piF 		! CV(Bm,Pf)                          C7
+I symm nvar nvar =$pi~F		! CV(Bm,P~f)                         C8
+J low nvar nvar =$aM		! male add gen paths
+K low nvar nvar =$aF		! female add gen paths
+L low nvar nvar =$bM		! male specific add gen paths
+M zero nvar nvar =$bF		! 0
+N symm nvar nvar =$wM		! male fa cov paths
+O symm nvar nvar =$wF		! female fa cov paths
+P symm nvar nvar =$vM		! male fb cov paths
+S symm nvar nvar =$vF		! female fb cov paths
+T low nvar nvar =$f~M		! male f~paths
+V low nvar nvar =$f~F		! female f~paths
+End Matrices;
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Algebra;
+!avuncluar related constraints 33-48; + section from groups 10 12 and 13 goes to group 19 
+!changed 3/12/07
+W = ( ! xi terms
+(B*D*E)|(I*D*B)|(D*B)_	! xi.Mm      C33
+(B*D*E)|(G*D*E)|(D*E)_	! xi.Fm      C34
+(B*D*E)|(I*D*B)|(D*B)_	! xi.Mf      C35
+(B*D*E)|(G*D*E)|(D*E)_	! xi.Ff      C36
+! lambda terms                                      
+(E*D)|(I*D)|(D)_	! lambda.Mm  C37
+(B*D)|(G*D)|(D)_	! lambda.Fm  C38
+(E*D)|(I*D)|(D)_	! lambda.Mf  C39
+(B*D)|(G*D)|(D)_	! lambda.Ff  C40
+! alpha terms                                        
+(G*D*I)|(E*D*G)|(D*G)_	! alpha.Mm   C41
+(G*D*I)|(B*D*I)|(D*I)_	! alpha.Fm   C42
+(G*D*I)|(E*D*G)|(D*G)_	! alpha.Mf   C43
+(G*D*I)|(B*D*I)|(D*I)_	! alpha.Ff   C44
+! beta terms                                          
+(I*D)|(E*D)|(D)_	! beta.Mm    C45
+(G*D)|(B*D)|(D)_	! beta.Fm    C46
+(I*D)|(E*D)|(D)_	! beta.Mf    C47
+(G*D)|(B*D)|(D)); ! beta.Ff    C48
+End Algebra;
+!parts of constriant equations 1-10 that include a & b pathways
+constraint (A|B|C|E|F|G|H|I|Q|Y)=
+((Q*J+R*L+N)| 		! deltaM         C1
+(Z@(Q*J+R*L)+N*T)| 	! delta~M        C2
+(Q*K+R*M+O)| 		! deltaF         C3
+(Z@(Q*K+R*M)+O*V)| 	! delta~F        C4
+(R*J+Y*L+P)| 		! piM            C5
+(Z@(R*J+Y*L)+P*T)| 	! pi~M           C6
+(R*K+Y*M+S)| 		! piF            C7
+(Z@(R*K+Y*M)+S*V)| 	! pi~F           C8
+(U+B*D*E')|		! Va             C1
+(U+G*D*I'));		! Vb             C2
+Options RS
+END
+
+    
+G11 : Within person or MZ-related constraints plus Va and Vb
+!constriant equations 11-18
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$deltaM 	! CV(Am,Pm)             C1
+B symm nvar nvar =$delta~M 	! CV(Am,P~m)            C2
+C symm nvar nvar =$deltaF 	! CV(Am,Pf)             C3
+D symm nvar nvar =$d		! Assortitive mating    
+E symm nvar nvar =$delta~F	! CV(Am,P~f)            C4
+F symm nvar nvar =$piM 		! CV(Bm,Pm)             C5
+G symm nvar nvar =$pi~M 	! CV(Bm,P~m)            C6
+H full 1 1 
+I symm nvar nvar =$piF 		! CV(Bm,Pf)             C7
+J symm nvar nvar =$pi~F		! CV(Bm,P~f)            C8
+K symm nvar nvar =$sigma2M	! Pheno V male          C19
+L symm nvar nvar =$sigma2F	! Pheno V female        C21
+M low  nvar nvar =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar  =$p		! cultural trans. mother daughter
+Q symm nvar nvar =$tau2M	! CV(Pm,P~m)            C20
+S symm nvar nvar =$tau2F	! CV(Pf,P~f)            C22
+R symm nvar nvar =$r		! Cov(a,b)              C14
+T symm nvar nvar =$wM		! male fa cov paths     C15
+U symm nvar nvar =$wF		! female fa cov paths   C16
+V symm nvar nvar =$vM		! male fb cov paths     C17
+W symm nvar nvar =$vF		! female fb cov paths   C18
+X symm nvar nvar =$xM		! VFm                   C11
+Y symm nvar nvar =$xF		! VFf                   C12
+Z symm nvar nvar =$xMF		! Cv(Vfm,Vff)           C13
+End Matrices;
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Matrix H .5
+Constraint
+!constriant equations 11-18
+(X|Y|Z|R|T|U|V|W)=(
+((M*K*M')+(O*L*O')+(M*O'*(Q*D*S))+(M*O'*(Q*D*S)))| ! xM    C11
+((N*K*N')+(P*L*P')+(N*P'*(Q*D*S))+(N*P'*(Q*D*S)))| ! xF    C12
+((M*K*N')+(O*L*P')+(M*P'*(Q*D*S))+(N*O'*(Q*D*S)))| ! xMF   C13
+((H@D)*(B*J'+E*G'))|				   ! r     C14
+(H@((A*M)+(C*O)+(B*D*S*O)+(E*D*Q*M)))| ! wM                C15
+(H@((C*P)+(A*N)+(B*D*S*P)+(E*D*Q*N)))| ! wF                C16
+(H@((F*M)+(I*O)+(G*D*S*O)+(J*D*Q*M)))| ! vM                C17
+(H@((I*P)+(F*N)+(G*D*S*P)+(J*D*Q*N)))); ! vF                C18
+Options RS
+END
+
+    
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Sibling relationships groups 12 - 16__________________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+G12 : Parts of constraints and covariances involving a and b 
+!calculated to be carried forward into future groups 
+Calc
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A low nvar nvar =$aM		! male add gen paths
+C low nvar nvar =$aF		! female add gen paths
+B low nvar nvar =$bM		! male specific add gen paths
+D zero nvar nvar =$bF		! 0
+E symm nvar nvar =$wM		! male fa cov paths                C15
+F symm nvar nvar =$wF		! female fa cov paths              C16
+G symm nvar nvar =$vM		! male fb cov paths                C17
+H symm nvar nvar =$vF		! female fb cov paths              C18
+I low nvar nvar =$f~M		! male f~paths
+J low nvar nvar =$f~F		! female f~paths
+K symm nvar nvar =$xM		! Vfm                              C11
+L symm nvar nvar =$xF		! Vff                              C12
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar  =$p		! cultural trans. mother daughter
+Q symm nvar nvar =$q		! Va                               C1
+R symm nvar nvar =$r		! Cov(a,b)                         C14
+S symm nvar nvar =$xMF		! Cv(Vfm,Vff)                      C13
+T full 1 1 
+Y symm nvar nvar =$y		! Vb                               C10
+Z full 1 1	=$genmodel
+End Matrices;
+MA T .5
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Algebra;
+! for R 19,20,21 & 22 MZ cov znd DZ cov
+! the next group will compute the d s t and e terms
+U=( ! FOR CONSTRAINTS 19-22 - these go to group 14
+((A*Q*A')+(B*Y*B')+K+(A*B'*R)+(A*B'*R)+(A*E)+(A*E)+(B*G)+(B*G))_  		! C19
+(Z@((A*Q*A')+(B*Y*B')+(A*B'*R)+(A*B'*R)+(A*E)+(B*G))+((I*K)+(A*I*E)+(B*I*G)))_ 	! C20
+((C*Q*C')+(D*Y*D')+L+(C*D'*R)+(C*D'*R)+(C*F)+(C*F)+(D*H)+(D*H))_  		! C21
+(Z@((C*Q*C')+(D*Y*D')+(C*D'*R)+(C*D'*R)+(C*F)+(D*H))+((J*L)+(C*J*F)+(D*J*H)))_ 	! C22
+! MZ TWIN COVARIANCES
+((A*Q*A')+(B*Y*B')+K+(A*B'*R)+(A*B'*R)+(A*E)+(A*E)+(B*G)+(B*G))_  		! MZM (P-P) R1 (partial)
+((C*Q*C')+(D*Y*D')+L+(C*D'*R)+(C*D'*R)+(C*F)+(C*F)+(D*H)+(D*H))_  		! MZF (P-P) R2 (partial)
+!
+(Z@((A*Q*A')+(B*Y*B')+(A*B'*R)+(A*B'*R)+(A*E)+(B*G))+((I*K)+(A*I*E)+(B*I*G)))_ 	! MZM (P-P~) R1~ (partial)
+(Z@((C*Q*C')+(D*Y*D')+(C*D'*R)+(C*D'*R)+(C*F)+(D*H))+((J*L)+(C*J*F)+(D*J*H)))_ 	! MZF (P-P~) R2~ (partial)
+!
+(Z@((A*Q*A')+(B*Y*B')+(A*B'*R)+(A*B'*R)+(A*I*E)+(A*I*E)+(B*I*G)+(B*I*G))+(I*K*I'))_ ! MZM (P~-P~) R1~~ (partial)
+(Z@((C*Q*C')+(D*Y*D')+(C*D'*R)+(C*D'*R)+(C*J*F)+(C*J*F)+(D*J*H)+(D*J*H))+(J*L*J'))_ ! MZF (P~-P~) R2~~ (partial)
+! DZ TWIN COVARIANCES
+((A*(Q-T)*A')+(B*(Y-T)*B')+K+(A*B'*R)+(A*B'*R)+(A*E)+(A*E)+(B*G)+(B*G))_	! DZM (P-P) R3 (partial)
+((C*(Q-T)*C')+(D*(Y-T)*D')+L+(C*D'*R)+(C*D'*R)+(C*F)+(C*F)+(D*H)+(D*H))_	! DZF (P-P) R4 (partial)
+((A*(Q-T)*C')+(B*(Y-T)*D')+S+(A*D'*R)+(C*B'*R)+(A*F)+(C*E)+(B*H)+(D*G))_	! DZMF (P-P) R5 (partial)
+!
+(Z@((A*(Q-T)*A')+(B*(Y-T)*B')+(A*B'*R)+(A*B'*R)+(A*E)+(B*G))+((I*K)+(A*I*E)+(B*I*G)))_ 	! DZM (P-P~) R3~ (partial)
+(Z@((C*(Q-T)*C')+(D*(Y-T)*D')+(C*D'*R)+(C*D'*R)+(C*F)+(D*H))+((J*L)+(C*J*F)+(D*J*H)))_ 	! DZF (P-P~) R4~ (partial)
+(Z@((A*(Q-T)*C')+(B*(Y-T)*D')+(A*D'*R)+(C*B'*R)+(C*E)+(D*G))+((J*S)+(A*J*F)+(B*J*H)))_ 	! DZFM (P-P~) R5a~ (partial)
+(Z@((C*(Q-T)*A')+(D*(Y-T)*B')+(C*B'*R)+(A*D'*R)+(A*F)+(B*H))+((I*S)+(C*I*E)+(D*I*G)))_ 	! DZMF (P-P~) R5b~ (partial)
+!
+(Z@((A*(Q-T)*A')+(B*(Y-T)*B')+(A*B'*R)+(A*B'*R)+(A*I*E)+(A*I*E)+(B*I*G)+(B*I*G))+(I*K*I'))_  ! DZM (P~-P~) R3~~ (partial)
+(Z@((C*(Q-T)*C')+(D*(Y-T)*D')+(C*D'*R)+(C*D'*R)+(C*J*F)+(C*J*F)+(D*J*H)+(D*J*H))+(J*L*J'))_  ! DZF (P~-P~) R4~~ (partial)
+(Z@((A*(Q-T)*C')+(B*(Y-T)*D')+(A*D'*R)+(C*B'*R)+(A*J*F)+(C*I*E)+(B*J*H)+(D*I*G))+(I*S*J'))); ! DZMF (P~-P~) R5~~ (partial)
+
+!constriants 23-32; goes to group 13
+V=((A*(Q-T)+B*R+E)_	! thetaM  C24
+(C*(Q-T)+D*R+F)_	! thetaF  C25
+(Z@(A*(Q-T)+B*R)+I*E)_	! theta~M C26
+(Z@(C*(Q-T)+D*R)+J*F)_	! theta~F C27
+(B*(Y-T)+A*R+G)_	! phiM    C29
+(D*(Y-T)+C*R+H)_	! phiF    C30
+(Z@(B*(Y-T)+A*R)+I*G)_	! phi~M   C31
+(Z@(D*(Y-T)+C*R)+J*H));	! phi~F   C32
+
+!avuncluar related constraints 33-48; + section from groups 10 12 and 13 goes to group 19 
+!changed 3/12/07
+! .5am |.5bm terms
+X=( ! xi terms
+(T@A)|(T@B)|(T+T)_	! xi.Mm      C33
+(T@A)|(T@B)|(T+T)_	! xi.Fm      C34
+(T@C)|(T@D)|(T+T)_	! xi.Mf      C35
+(T@C)|(T@D)|(T+T)_	! xi.Ff      C36
+! lambda terms                                      
+(T@A)|(T@B)|(T+T)_	! lambda.Mm  C37
+(T@A)|(T@B)|(T+T)_	! lambda.Fm  C38
+(T@C)|(T@D)|(T+T)_	! lambda.Mf  C39
+(T@C)|(T@D)|(T+T)_	! lambda.Ff  C40
+! alpha terms                                        
+(T@B)|(T@A)|(T+T)_	! alpha.Mm   C41
+(T@B)|(T@A)|(T+T)_	! alpha.Fm   C42
+(T@D)|(T@C)|(T+T)_	! alpha.Mf   C43
+(T@D)|(T@C)|(T+T)_	! alpha.Ff   C44
+! beta terms                                          
+(T@B)|(T@A)|(T+T)_	! beta.Mm    C45
+(T@B)|(T@A)|(T+T)_	! beta.Fm    C46
+(T@D)|(T@C)|(T+T)_	! beta.Mf    C47
+(T@D)|(T@C)|(T+T)); ! beta.Ff    C48
+W=( ! xi terms
+(Q)|(R)|(T-T)_	! xi.Mm      C33
+(Q)|(R)|(T-T)_	! xi.Fm      C34
+(Q)|(R)|(T-T)_	! xi.Mf      C35
+(Q)|(R)|(T-T)_	! xi.Ff      C36
+! lambda terms                                      
+(Q-T)|(R)|(T-T)_	! lambda.Mm  C37
+(Q-T)|(R)|(T-T)_	! lambda.Fm  C38
+(Q-T)|(R)|(T-T)_	! lambda.Mf  C39
+(Q-T)|(R)|(T-T)_	! lambda.Ff  C40
+! alpha terms                                        
+(Y)|(R)|(T-T)_	! alpha.Mm   C41
+(Y)|(R)|(T-T)_	! alpha.Fm   C42
+(Y)|(R)|(T-T)_	! alpha.Mf   C43
+(Y)|(R)|(T-T)_	! alpha.Ff   C44
+! beta terms                                          
+(Y-T)|(R)|(T-T)_	! beta.Mm    C45
+(Y-T)|(R)|(T-T)_	! beta.Fm    C46
+(Y-T)|(R)|(T-T)_	! beta.Mf    C47
+(Y-T)|(R)|(T-T)); ! beta.Ff    C48
+End Algebra;
+End
+
+    
+G13 : twin/sibling constraints calc in previous group
+Constrain
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+!twin sibling related constraints
+F computed 16 3 =W10
+Y computed 16 2 =X12
+Z computed 16 2 =W12
+V comp 8 nvar =V12		! Constriants computed in previous group
+
+B symm nvar nvar =$thetaM	! Cv(Adz1,Pdz2m) 	C24
+C symm nvar nvar =$thetaF	! Cv(Adz1,Pdz2f) 	C25 
+D symm nvar nvar =$theta~M	! Cv(Adz1,P~dz2m) 	C26 
+E symm nvar nvar =$theta~F	! Cv(Adz1,P~dz2f) 	C27 
+G symm nvar nvar =$phiM		! Cv(Bdz1,Pdz2m) 	C29 
+H symm nvar nvar =$phiF		! Cv(Bdz1,Pdz2f) 	C30 
+I symm nvar nvar =$phi~M	! Cv(Bdz1,P~dz2m) 	C31 
+J symm nvar nvar =$phi~F	! Cv(Bdz1,P~dz2f) 	C32
+K unit 1 1
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar  =$p		! cultural trans. mother daughter
+!
+Q symm nvar nvar =$deltaM 	! CV(Am,Pm)             C1
+R symm nvar nvar =$deltaF 	! CV(Af,Pf)             C3
+S symm nvar nvar =$tau2F  !! T	! CV(Pf,P~f) 		C22  !!corrected 5/08: S<->T
+T symm nvar nvar =$tau2M  !! S	! CV(Pm,P~m) 		C20  !!corrected 5/08: S<->T
+U symm nvar nvar =$piM 		! CV(Bm,Pm)             C5
+X symm nvar nvar =$piF 		! CV(Bm,Pm)             C7
+End Matrices; 
+Begin Algebra;
+!avuncluar related constraints 33-48; + section from groups 10 12 and 13 goes to group 19 
+!changed 3/12/07
+W=(
+(Y).((Z)
++(F.( ! xi terms 
+(K|K|O*S)_	! xi.Mm      C33
+(K|K|M*T)_	! xi.Fm      C34
+(K|K|P*S)_	! xi.Mf      C35
+(K|K|N*T)_	! xi.Ff      C36
+! lambda terms                                      
+(D|D|O*D*S)_	! lambda.Mm  C37
+(E|E|M*E*T)_	! lambda.Fm  C38
+(D|D|P*D*S)_	! lambda.Mf  C39
+(E|E|N*E*T)_	! lambda.Ff  C40
+! alpha terms                                        
+(K|K|O*S)_	! alpha.Mm   C41
+(K|K|M*T)_	! alpha.Fm   C42
+(K|K|P*S)_	! alpha.Mf   C43
+(K|K|N*T)_	! alpha.Ff   C44
+! beta terms                                          
+(I|I|O*I*S)_	! beta.Mm    C45
+(J|J|M*J*T)_	! beta.Fm    C46
+(I|I|P*I*S)_	! beta.Mf    C47
+(J|J|N*J*T))))) ! beta.Ff    C48
+*(K_K_K)        !sum accross colums
++( ! xi terms 
+(Q*M)_	! xi.Mm      C33
+(R*O)_	! xi.Fm      C34
+(Q*N)_	! xi.Mf      C35
+(R*P)_	! xi.Ff      C36
+! lambda terms                                      
+(B*M)_	! lambda.Mm  C37
+(C*O)_	! lambda.Fm  C38
+(B*N)_	! lambda.Mf  C39
+(C*P)_	! lambda.Ff  C40
+! alpha terms                                        
+(U*M)_	! alpha.Mm   C41
+(X*O)_	! alpha.Fm   C42
+(U*N)_	! alpha.Mf   C43
+(X*P)_	! alpha.Ff   C44
+! beta terms                                          
+(G*M)_	! beta.Mm    C45
+(H*O)_	! beta.Fm    C46
+(G*N)_	! beta.Mf    C47
+(H*P)); ! beta.Ff    C48
+End Algebra ;
+Constrain (B_C_D_E_G_H_I_J)=V;
+Options RS
+End
+
+    
+G14 : Parts of constraints and covariances involving d s t & e
+!calculated to be carried forward into future groups 
+Calc
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A low  nvar nvar =$dM		! male dominance
+B low  nvar nvar =$dF		! female dominance
+C symm nvar nvar =$Zd		! Cv(dM,dF)
+D low  nvar nvar =$sM		! male sib env
+E low  nvar nvar =$sF		! female sib env
+F symm nvar nvar =$Zs		! Cv(sM,sF)
+G low  nvar nvar =$tM		! male twin env
+H low  nvar nvar =$tF		! female twin env
+I symm nvar nvar =$Zt		! Cv(tM,tF)
+J low  nvar nvar =$eM		! male unique env
+K low  nvar nvar =$eF		! female unique env
+!
+U comp 20 nvar =U12		! Constriants computed in previous group
+Q full 1 1
+X full 1 1	=$envmodel
+Z full 1 1	=$genmodel
+End Matrices ;
+Ma Q .25
+Begin Algebra;
+L=( ! FOR CONSTRAINTS 19-22
+(A*A'+D*D'+G*G'+J*J')_ 		! for C19
+(Z@(A*A')+X@(D*D'+G*G'+J*J'))_ 	! for C20
+(B*B'+E*E'+H*H'+K*K')_ 		! for C21
+(Z@(B*B')+X@(E*E'+H*H'+K*K'))_ 	! for C22
+! FOR MZ TWIN COVARIANCES
+(A*A'+D*D'+G*G')_		! for MZM(P-P)     R1                   
+(B*B'+E*E'+H*H')_		! for MZF (P-P)    R2                   
+!                                                                                                   
+(Z@(A*A')+X@(D*D'+G*G'))_	! for MZM(P-P~)    R1~                 
+(Z@(B*B')+X@(E*E'+H*H'))_	! for MZF (P-P~)   R2~                 
+!                                                                                                   
+(Z@(A*A')+X@(D*D'+G*G'))_	! for MZM(P~-P~)   R1~~           
+(Z@(B*B')+X@(E*E'+H*H'))_	! for MZF (P~-P~)  R2~~           
+! FOR DZ TWIN COVARIANCES                                                                           
+(Q@(A*A')+D*D'+G*G')_		! for DZM(P-P)     R3                   
+(Q@(B*B')+E*E'+H*H')_		! for DZF (P-P)    R4                   
+((A*C*B')+D*F*E'+G*I*H')_	        ! for DZMF (P-P)   R5                  
+!                                                                                                   
+(Z@(Q@(A*A'))+X@(D*D'+G*G'))_	! for DZM(P-P~)    R3~         
+(Z@(Q@(B*B'))+X@(E*E'+H*H'))_	! for DZF (P-P~)   R4~         
+(Z@(A*C*B')+X@(D*F*E'+G*I*H'))_ ! for DZFM (P-P~)  R5a~       
+(Z@(B*C*A')+X@(E*F*D'+H*I*G'))_ ! for DZMF (P-P~)  R5b~       
+!                                                                                                   
+(Z@(Q@(A*A'))+X@(D*D'+G*G'))_	! for DZM(P~-P~)   R3~~  
+(Z@(Q@(B*B'))+X@(E*E'+H*H'))_	! for DZF (P~-P~)  R4~~  
+(Z@(A*C*B')+X@(D*F*E'+G*I*H'))); ! for DZMF (P~-P~)R5~~ 
+!
+M=L+U; !genetic plus environmental terms; to group 15
+End Algebra;
+End
+
+   
+G15 : putting together genetic and env aspects of the constraints
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$sigma2M 		! Pheno V male    C19
+B symm nvar nvar =$tau2M 		! CV(Pm,P~m) 	  C20
+C symm nvar nvar =$sigma2F	 	! Pheno V female  C21
+D symm nvar nvar =$tau2F 		! CV(Pm,P~m) 	  C22
+! FOR MZ TWIN COVARIANCES
+E symm nvar nvar =$mm-mz		! MZM(P-P)        R1   
+F symm nvar nvar =$ff-mz		! MZF (P-P)       R2   
+G symm nvar nvar =$Phi~mm		! MZM(P-P~)       R1~  
+H symm nvar nvar =$Phi~ff		! MZF (P-P~)      R2~  
+I symm nvar nvar =$Phi~m~m		! MZM(P~-P~)      R1~~ 
+J symm nvar nvar =$Phi~f~f		! MZF (P~-P~)     R2~~ 
+! DZ TWIN COVARIANCES
+K symm nvar nvar =$mm-dz		! DZM(P-P)        R3   
+L symm nvar nvar =$ff-dz		! DZF (P-P)       R4   
+M symm nvar nvar =$os-dz		! DZ os (P-P)     R5   
+N symm nvar nvar =$Omega~mm		! DZM(P-P~)       R3~  
+O symm nvar nvar =$Omega~ff		! DZF (P-P~)      R4~  
+P symm nvar nvar =$Omega~fm		! DZFM (P-P~)     R5a~ 
+Q symm nvar nvar =$Omega~mf		! DZMF (P-P~)     R5b~ 
+R symm nvar nvar =$Omega~m~m		! DZM(P~-P~)      R3~~ 
+S symm nvar nvar =$Omega~f~f		! DZF (P~-P~)     R4~~ 
+T symm nvar nvar =$Omega~m~f		! DZMF (P~-P~)    R5~~ 
+U comp 20 nvar =M14
+End Matrices ;
+Constrain (A_B_C_D_E_F_G_H_I_J_K_L_M_N_O_P_Q_R_S_T)=U ;
+Options RS
+End
+
+    
+G16 : sibling covariances
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A sym nvar nvar =$msib			!male sibling cov      R6   
+B sym nvar nvar =$fsib			!female sibling cov    R7   
+C sym nvar nvar =$ossib  		!os sibling cov        R8   
+D sym nvar nvar =$Xi~mm			! Cv(PSib1m,P~Sib2m)   R6~    	
+E sym nvar nvar =$Xi~ff			! Cv(PSib1f,P~Sib2f)   R7~  
+F sym nvar nvar =$Xi~fm			! Cv(PSib1f,P~Sib2m)   R8a~ 
+G sym nvar nvar =$Xi~mf			! Cv(PSib1m,P~Sib2f)   R8b~ 
+Y sym nvar nvar =$Xi~m~m		! Cv(P~Sib1m,P~Sib2m)  R6~~   	
+H sym nvar nvar =$Xi~f~f		! Cv(P~Sib1f,P~Sib2f)  R7~~ 
+I sym nvar nvar =$Xi~m~f		! Cv(P~Sib1m,P~Sib2f)  R8~~ 
+!
+K symm nvar nvar =$mm-dz		! DZM(P-P)             R3   
+L symm nvar nvar =$ff-dz		! DZF (P-P)            R4   
+M symm nvar nvar =$os-dz		! DZMF (P-P)           R5   
+N symm nvar nvar =$Omega~mm		! DZM(P-P~)            R3~  
+O symm nvar nvar =$Omega~ff		! DZF (P-P~)           R4~  
+P symm nvar nvar =$Omega~fm		! DZFM (P-P~)          R5a~ 
+Z symm nvar nvar =$Omega~mf		! DZMF (P-P~)          R5b~ 
+Q symm nvar nvar =$Omega~m~m		! DZM(P~-P~)           R3~~ 
+R symm nvar nvar =$Omega~f~f		! DZF (P~-P~)          R4~~ 
+S symm nvar nvar =$Omega~m~f		! DZMF (P~-P~)         R5~~ 
+!
+T low nvar nvar  =$tM	  	        ! male twin env
+U low nvar nvar  =$tF		        ! female twin env
+V symm nvar nvar =$Zt		        ! Cv(tM,tF)
+W full 1 1       =$envmodel
+End Matrices;
+Constraint (A_B_C_D_E_F_G_Y_H_I)=
+((K-(T*T'))_                        ! R6  
+(L-(U*U'))_                         ! R7  
+(M-(T*V*U'))_                       ! R8  
+(N-W@(T*T'))_                       ! R6~ 
+(O-W@(U*U'))_                       ! R7~ 
+(P-W@(T*V*U'))_                     ! R8a~
+(Z-W@(U*V*T'))_                     ! R8b~
+(Q-W@(T*T'))_                       ! R6~~
+(R-W@(U*U'))_                       ! R7~~
+(S-W@(T*V*U')));                    ! R8~~
+Options RS
+End
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Parent-offspring relationships groups 17 & 18_________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+G17 : non mnop components for parent-offspring cv
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$tau2M	! CV(Pm,P~m) 		C20
+B symm nvar nvar =$tau2F	! CV(Pf,P~f) 		C22
+C symm nvar nvar =$d		! Assortitive mating
+D low nvar nvar =$aM		! male add gen paths
+E low nvar nvar =$aF		! female add gen paths
+F low nvar nvar =$bM		! male specific add gen paths
+G zero nvar nvar =$bF		! male specific add gen paths for females
+H low nvar nvar  =$m		! cultural trans. father son
+I low nvar nvar  =$n		! cultural trans. father daughter
+J low nvar nvar  =$o		! cultural trans. mother son
+K low nvar nvar  =$p		! cultural trans. mother daughter
+L symm nvar nvar =$deltaM 	! CV(Am,Pm)    C1
+M symm nvar nvar =$delta~M 	! CV(Am,P~m)   C2
+N symm nvar nvar =$deltaF 	! CV(Am,Pf)    C3
+O symm nvar nvar =$delta~F 	! CV(Am,P~f)   C4
+P symm nvar nvar =$piM 		! CV(Bm,Pm)    C5
+Q symm nvar nvar =$pi~M 	! CV(Bm,P~m)   C6
+R symm nvar nvar =$piF 		! CV(Bm,Pf)    C7
+S symm nvar nvar =$pi~F		! CV(Bm,P~f)   C8
+T symm nvar nvar =$spouse	! spouse cov   R9
+Y full 1 1 
+Z full 1 1      =$genmodel
+End Matrices;
+Ma Y .5
+Begin Algebra;
+U=A*C*B; 		!tau2M2*d*tau2F2
+V=B*C*A;		!tau2F2*d*tau2M2
+!the W matrix will be carried through to group 19 where the mnop terms will be added
+W=(((Y@D*L)+(Y@D*(O*C*A))+(Y@F*P)+(Y@F*(S*C*A)))_	! Delta Mm   R10 (partial)
+((Y@E*L)+(Y@E*(O*C*A))+(Y@G*P)+(Y@G*(S*C*A)))_		! Delta Mf   R12 !R11 (partial)
+((Y@D*N)+(Y@D*(M*C*B))+(Y@F*R)+(Y@F*(Q*C*B)))_		! Delta Fm   R11 !R12 (partial)
+((Y@E*N)+(Y@E*(M*C*B))+(Y@G*R)+(Y@G*(Q*C*B)))_		! Delta Ff   R13 (partial)
+(Z@((Y@D*L)+(Y@D*(O*C*A))+(Y@F*P)+(Y@F*(S*C*A))))_	! Delta~ Mm  R10~ (partial)
+(Z@((Y@E*L)+(Y@E*(O*C*A))+(Y@G*P)+(Y@G*(S*C*A))))_	! Delta~ Mf  R12 !R11~ (partial)
+(Z@((Y@D*N)+(Y@D*(M*C*B))+(Y@F*R)+(Y@F*(Q*C*B))))_	! Delta~ Fm  R11 !R12~ (partial)
+(Z@((Y@E*N)+(Y@E*(M*C*B))+(Y@G*R)+(Y@G*(Q*C*B))))) ;	! Delta~ Ff  R13~ (partial)
+End Algebra;
+Constraint T=U;
+Options RS
+End
+
+G18 : mnop components for parent-offspring cv
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A low nvar nvar  =$m		! cultural trans. father son
+B low nvar nvar  =$n		! cultural trans. father daughter
+C low nvar nvar  =$o		! cultural trans. mother son
+D low nvar nvar  =$p		! cultural trans. mother daughter
+E symm nvar nvar =$sigma2M	! Pheno V male   	C19
+F symm nvar nvar =$sigma2F	! Pheno V female 	C21
+G low nvar nvar =$f~M		! male f~paths
+H low nvar nvar =$f~F		! female f~paths
+I symm nvar nvar =$f-son	! DeltaMm               R10 (partial) 
+J symm nvar nvar =$f-dau !! $m-son	! DeltaMf               R12 !!R11 (partial) !!corrected 5/08: J<->K 
+K symm nvar nvar =$m-son !! $f-dau	! DeltaFm               R11 !!R12 (partial) !!corrected 5/08: J<->K
+L symm nvar nvar =$m-dau	! DeltaFf               R13 (partial) 
+M symm nvar nvar =$Delta~Mm 	! Cv(PFa,P~son)         R10~ (partial)
+N symm nvar nvar =$Delta~Mf 	! Cv(PFa,P~daughter)    R12 !R11~ (partial)
+O symm nvar nvar =$Delta~Fm 	! Cv(PMo,P~son)         R11 !R12~ (partial)
+P symm nvar nvar =$Delta~Ff 	! Cv(PMo,P~daughter)    R13~ (partial)
+U comp nvar nvar =U17		! tau2M2*d*tau2F2
+V comp nvar nvar =V17		! tau2F2*d*tau2M2
+W comp 8 nvar    =W17      	! paths for parent-offsping cov except for mnop
+End Matrices; 
+Begin Algebra;
+Q=(((A*E)+(C*U))_	! Delta Mm    R10 (partial) 
+((B*E)+(D*U))_		! Delta Mf    R12 !R11 (partial) 
+((C*F)+(A*V))_		! Delta Fm    R11 !R12 (partial) 
+((D*F)+(B*V))_		! Delta Ff    R13 (partial) 
+((A*G*E)+(C*G*U))_	! Delta~ Mm   R10~ (partial)
+((B*H*E)+(D*H*U))_	! Delta~ Mf   R12 !R11~ (partial)
+((C*G*F)+(A*G*V))_	! Delta~ Fm   R11 !R12~ (partial)
+((D*H*F)+(B*H*V)));	! Delta~ Ff   R13~ (partial)
+R=W+Q;
+S=I_J_K_L_M_N_O_P;
+End Algebra;
+Constraint S=R;
+Options RS
+End
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Avuncular relationships groups 19 - 27________________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+G19 : avuncular constraints calc in previous group
+Constrain
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+!avuncular related constraints
+A symm nvar nvar =$xi.Mm	! Cv(Amz1,Pmzm2.son) 	C33
+B symm nvar nvar =$xi.Fm	! Cv(Amz1,Pmzf2.son) 	C34
+C symm nvar nvar =$xi.Mf	! Cv(Amz1,Pmzm2.dau) 	C35
+D symm nvar nvar =$xi.Ff	! Cv(Amz1,Pmzf2.dau) 	C36
+E symm nvar nvar =$lambda.Mm	! Cv(Adz1,Pdzm2.son) 	C37
+F symm nvar nvar =$lambda.Fm	! Cv(Adz1,Pdzf2.son) 	C38
+G symm nvar nvar =$lambda.Mf	! Cv(Adz1,Pdzm2.dau) 	C39
+H symm nvar nvar =$lambda.Ff	! Cv(Adz1,Pdzf2.dau) 	C40
+I symm nvar nvar =$alpha.Mm	! Cv(Bmz1,Pmzm2.son) 	C41
+J symm nvar nvar =$alpha.Fm	! Cv(Bmz1,Pmzf2.son) 	C42
+K symm nvar nvar =$alpha.Mf	! Cv(Bmz1,Pmzm2.dau) 	C43
+L symm nvar nvar =$alpha.Ff	! Cv(Bmz1,Pmzf2.dau) 	C44
+M symm nvar nvar =$beta.Mm	! Cv(Bdz1,Pdzm2.son) 	C45
+N symm nvar nvar =$beta.Fm	! Cv(Bdz1,Pdzf2.son) 	C46
+O symm nvar nvar =$beta.Mf	! Cv(Bdz1,Pdzm2.dau) 	C47
+P symm nvar nvar =$beta.Ff	! Cv(Bdz1,Pdzf2.dau) 	C48
+!
+!avuncluar related constraints 33-48; + section from groups 10 12 and 13 goes to group 19 
+W comp 16 nvar =W13		! Constriants C33-C48 computed in groups 12 & 13
+End Matrices; 
+Constrain (A_B_C_D_E_F_G_H_I_J_K_L_M_N_O_P)=W ;
+Options RS
+End
+
+
+G20 : MZ Uncle Cv
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aM		! male add gen paths
+C low nvar nvar =$aF		! female add gen paths
+D low nvar nvar =$bM		! male specific add gen paths
+E zero nvar nvar =$bF		! 0
+F symm nvar nvar =$tau2F	! CV(Pf,P~f) 	                   C22
+G symm nvar nvar =$deltaM 	! CV(Am,Pm)                        C1
+H symm nvar nvar =$delta~M 	! CV(Am,P~m)                       C2
+I symm nvar nvar =$delta~F 	! CV(Am,P~f)                       C4
+J symm nvar nvar =$piM 		! CV(Bm,Pm)                        C5
+K symm nvar nvar =$pi~M 	! CV(Bm,P~m)                       C6
+L symm nvar nvar =$pi~F		! CV(Bm,P~f)                       C8
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar  =$p		! cultural trans. mother daughter
+!
+Q symm nvar nvar =$mm-mz	! PhiMM                            R1
+R symm nvar nvar =$Phi~mm	! Cv(PMZ1m,P~MZ2m)		   R1~
+S symm nvar nvar =$Phi~m~m 	! Cv(P~MZ1m,P~MZ2m)		   R1~~
+!
+T symm nvar nvar =$mm-nep	! Cv(Pneph,PMZm) Gamma mM          R14
+U symm nvar nvar =$mm-nei	! Cv(Pneice,PMZm) Gamma fM         R15
+V symm nvar nvar =$Gamma~mM 	! Cv(Pneph,P~MZm)                  R14~
+W symm nvar nvar =$Gamma~fM 	! Cv(Pneice,P~MZm)                 R15~ 
+!
+X full 1 1 
+End Matrices;
+Ma X .5
+Begin Algebra;
+!Cv(Pneph,PMZm) Gamma mM  
+!Cv(Pneice,PMZm) Gamma fM 
+!Cv(Pneph,P~MZm)          
+!Cv(Pneice,P~MZm)         
+Y=(((X@B*G)+(X@B*I*A*R)+(X@D*J)+(X@D*L*A*R)+(M*Q)+(O*F*A*R))_	!  R14 
+   ((X@C*G)+(X@C*I*A*R)+(X@E*J)+(X@E*L*A*R)+(N*Q)+(P*F*A*R))_	!  R15 
+   ((X@B*H)+(X@B*I*A*S)+(X@D*K)+(X@D*L*A*S)+(M*R)+(O*F*A*S))_	!  R14~
+   ((X@C*H)+(X@C*I*A*S)+(X@E*K)+(X@E*L*A*S)+(N*R)+(P*F*A*S))) ;	!  R15~
+End Algebra;
+Constrain (T_U_V_W)=Y;
+Options RS
+End
+
+    
+G21 : MZ Aunt Cv
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aM		! male add gen paths
+C low nvar nvar =$aF		! female add gen paths
+D low nvar nvar =$bM		! male specific add gen paths
+E zero nvar nvar =$bF		! 0
+F symm nvar nvar =$tau2M	! CV(Pm,P~m) 		          C20
+G symm nvar nvar =$deltaF 	! CV(Af,Pf)                       C3
+H symm nvar nvar =$delta~M 	! CV(Am,P~m)                      C2
+I symm nvar nvar =$delta~F 	! CV(Am,P~f)                      C4
+J symm nvar nvar =$piF 		! CV(Bf,Pf)                       C7
+K symm nvar nvar =$pi~M 	! CV(Bm,P~m)                      C6
+L symm nvar nvar =$pi~F		! CV(Bm,P~f)                      C8 
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar =$p		! cultural trans. mother daughter
+!
+Q symm nvar nvar =$ff-mz	! PhiFF                           R2   
+R symm nvar nvar =$Phi~ff	! Cv(PMZ1f,P~MZ2f)		  R2~  
+S symm nvar nvar =$Phi~f~f 	! Cv(P~MZ1f,P~MZ2f)		  R2~~ 
+!                                                                      
+T symm nvar nvar =$ff-nep	! Cv(Pneph,PMZf) Gamma mF         R16  
+U symm nvar nvar =$ff-nei	! Cv(Pneice,PMZf) Gamma fF        R17  
+V symm nvar nvar =$Gamma~mF 	! Cv(Pneph,P~MZf)                 R16~ 
+W symm nvar nvar =$Gamma~fF 	! Cv(Pneice,P~MZf)                R17~ 
+!
+X full 1 1 
+End Matrices;
+Ma X .5
+Begin Algebra;
+! Cv(Pneph,PMZf) Gamma mF 
+! Cv(Pneice,PMZf) Gamma fF
+! Cv(Pneph,P~MZf)         
+! Cv(Pneice,P~MZf)        
+Y=(((X@B*G)+(X@B*H*A*R)+(X@D*J)+(X@D*K*A*R)+(O*Q)+(M*F*A*R))_	!  R16 
+   ((X@C*G)+(X@C*H*A*R)+(X@E*J)+(X@E*K*A*R)+(P*Q)+(N*F*A*R))_	!  R17 
+   ((X@B*I)+(X@B*H*A*S)+(X@D*L)+(X@D*K*A*S)+(O*R)+(M*F*A*S))_	!  R16~
+   ((X@C*I)+(X@C*H*A*S)+(X@E*L)+(X@E*K*A*S)+(P*R)+(N*F*A*S))) ;	!  R17~
+End Algebra;
+Constrain (T_U_V_W)=Y;
+Options RS
+End
+
+
+G22 : DZ Uncle Observed Cv
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aM		! male add gen paths
+C low nvar nvar =$aF		! female add gen paths
+D low nvar nvar =$bM		! male specific add gen paths
+E zero nvar nvar =$bF		! 0
+F symm nvar nvar =$tau2F	! CV(Pf,P~f) 	        	 C22
+G symm nvar nvar =$tau2M	! CV(Pf,P~f) 		         C20 
+H symm nvar nvar =$delta~M 	! CV(Am,P~m)                     C2 
+I symm nvar nvar =$delta~F 	! CV(Am,P~f)                     C4 
+J symm nvar nvar =$thetaM	! Cv(Adz1,Pdz2m) 	         C24 
+K symm nvar nvar =$pi~M 	! CV(Bm,P~m)                     C6 
+L symm nvar nvar =$pi~F		! CV(Bm,P~f)                     C8 
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar  =$p		! cultural trans. mother daughter
+!
+Q symm nvar nvar =$mm-dz	! OmegaMM                        R3  
+R symm nvar nvar =$Omega~mm	! Cv(PDZ1m,P~DZ2m)		 R3~ 
+S symm nvar nvar =$Omega~fm 	! Cv(PDZ1m,P~DZ2m)		 R5~~
+!                                                                    
+T symm nvar nvar =$dm-nep	! Cv(Pneph,PDZm)  Theta mM       R18 
+U symm nvar nvar =$dm-nei	! Cv(Pneice,PDZm) Theta fM       R19 
+V symm nvar nvar =$dom-nep 	! Cv(Pneph,PDZm) Theta mFM       R20
+W symm nvar nvar =$dom-nei 	! Cv(Pneice,PDZm) Theta fFM      R21
+!
+X full 1 1 
+Y symm nvar nvar =$phiM         ! Cv(Bdz1,Pdz2m) 	         C29 
+Z symm nvar nvar =$os-dz	! OmegaOS                        R5
+End Matrices;
+Ma X .5
+! Cv(Pneph,PDZm)  Theta mM
+! Cv(Pneice,PDZm) Theta fM
+! Cv(Pneph,PDZm) Theta mFM
+! Cv(Pneice,PDZm) Theta fFM
+Constraint 
+(((X@B*J)+(X@B*I*A*R)+(X@D*Y)+(X@D*L*A*R)+(M*Q)+(O*F*A*R))_     ! R18
+ ((X@C*J)+(X@C*I*A*R)+(X@E*Y)+(X@E*L*A*R)+(N*Q)+(P*F*A*R))_     ! R19
+ ((X@B*J)+(X@B*H*A*S)+(X@D*Y)+(X@D*K*A*S)+(O*Z)+(M*G*A*S))_     ! R20
+ ((X@C*J)+(X@C*H*A*S)+(X@E*Y)+(X@E*K*A*S)+(P*Z)+(N*G*A*S)))     ! R21
+ =(T_U_V_W) ;
+Options RS
+End
+
+    
+G23 : DZ Uncle Latent Cv
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aM		! male add gen paths
+C low nvar nvar =$aF		! female add gen paths
+D low nvar nvar =$bM		! male specific add gen paths
+E zero nvar nvar =$bF		! 0
+F symm nvar nvar =$tau2F	! CV(Pf,P~f) 		C22
+G symm nvar nvar =$tau2M	! CV(Pf,P~f) 		C20
+H symm nvar nvar =$delta~M 	! CV(Am,P~m)            C2
+I symm nvar nvar =$delta~F 	! CV(Am,P~f)            C4
+J symm nvar nvar =$theta~M	! Cv(Adz1,Pdz2m) 	C24
+K symm nvar nvar =$pi~M 	! CV(Bm,P~m)            C6
+L symm nvar nvar =$pi~F		! CV(Bm,P~f)            C8
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar  =$p		! cultural trans. mother daughter
+!
+Q symm nvar nvar =$Omega~mm	! Cv(PDZ1m,P~DZ2m)	R3~	
+R symm nvar nvar =$Omega~m~m	! Cv(P~DZ1m,P~DZ2m)     R3~~		 
+S symm nvar nvar =$Omega~m~f 	! Cv(P~DZ1m,P~DZ2m)	R5~~	
+!
+T symm nvar nvar =$Theta~mMM 	! Cv(Pneph,P~DZm)       R18~
+U symm nvar nvar =$Theta~fMM 	! Cv(Pneice,P~DZm)      R19~
+V symm nvar nvar =$Theta~mFM 	! Cv(Pneph,P~DZfm)      R20~
+W symm nvar nvar =$Theta~fFM 	! Cv(Pneice,P~DZfm)     R21~
+!
+X full 1 1 
+Y symm nvar nvar =$phi~M          ! Cv(Bdz1,Pdz2m) 	C29 
+Z symm nvar nvar =$Omega~mf 	! Cv(PDZ1m,P~DZ2m)	C5~	
+End Matrices;
+Ma X .5
+! Cv(Pneph,PDZm)  Theta~mMM
+! Cv(Pneice,PDZm) Theta~fMM
+! Cv(Pneph,PDZm) Theta~mFM
+! Cv(Pneice,PDZm) Theta~fFM
+Constraint 
+(((X@B*J)+(X@B*I*A*R)+(X@D*Y)+(X@D*L*A*R)+(M*Q)+(O*F*A*R))_  ! R18~
+ ((X@C*J)+(X@C*I*A*R)+(X@E*Y)+(X@E*L*A*R)+(N*Q)+(P*F*A*R))_  ! R19~
+ ((X@B*J)+(X@B*H*A*S)+(X@D*Y)+(X@D*K*A*S)+(O*Z)+(M*G*A*S))_  ! R20~
+ ((X@C*J)+(X@C*H*A*S)+(X@E*Y)+(X@E*K*A*S)+(P*Z)+(N*G*A*S)))  ! R21~
+    =(T_U_V_W) ;
+Options RS
+End
+
+    
+G24 : DZ Aunt Observed Cv
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aM		! male add gen paths
+C low nvar nvar =$aF		! female add gen paths
+D low nvar nvar =$bM		! male specific add gen paths
+E zero nvar nvar =$bF		! 0
+F symm nvar nvar =$tau2F	! CV(Pf,P~f) 		C22
+G symm nvar nvar =$tau2M	! CV(Pf,P~f) 		C20
+H symm nvar nvar =$delta~M 	! CV(Am,P~m)            C2
+I symm nvar nvar =$delta~F 	! CV(Am,P~f)            C4
+J symm nvar nvar =$thetaF	! Cv(Adz1,Pdz2m) 	C24
+K symm nvar nvar =$pi~M 	! CV(Bm,P~m)            C6
+L symm nvar nvar =$pi~F		! CV(Bm,P~f)            C8
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar  =$p		! cultural trans. mother daughter
+!
+Q symm nvar nvar =$ff-dz	! OmegaFF                          R4     
+R symm nvar nvar =$Omega~ff	! Cv(PDZ1f,P~DZ2f)	           R4~  
+S symm nvar nvar =$Omega~mf 	! Cv(PDZ1f,P~DZ2f)	           R5~  
+!                                                                       
+T symm nvar nvar =$df-nep	! Cv(Pneph,PDZf)  Theta mF         R22
+U symm nvar nvar =$df-nei	! Cv(Pneice,PDZf) Theta fF         R23
+V symm nvar nvar =$dof-nep 	! Cv(Pneph,PDZf) Theta mMF         R24
+W symm nvar nvar =$dof-nei 	! Cv(Pneice,PDZf) Theta fMF        R25
+!
+X full 1 1 
+Y symm nvar nvar =$phiF         ! Cv(Bdz1,Pdz2m) 	C29 
+Z symm nvar nvar =$os-dz	! OmegaOS               R5~
+End Matrices;
+Ma X .5
+! Cv(Pneph,PDZm)  Theta mF
+! Cv(Pneice,PDZm) Theta fF
+! Cv(Pneph,PDZm) Theta mMF
+! Cv(Pneice,PDZm) Theta fMF
+Constraint 
+(((X@B*J)+(X@B*H*A*R)+(X@D*Y)+(X@D*K*A*R)+(O*Q)+(M*G*A*R))_      ! R22
+ ((X@C*J)+(X@C*H*A*R)+(X@E*Y)+(X@E*K*A*R)+(P*Q)+(N*G*A*R))_      ! R23
+ ((X@B*J)+(X@B*I*A*S)+(X@D*Y)+(X@D*L*A*S)+(M*Z)+(O*F*A*S))_      ! R24
+ ((X@C*J)+(X@C*I*A*S)+(X@E*Y)+(X@E*L*A*S)+(N*Z)+(P*F*A*S)))      ! R25
+    =(T_U_V_W) ;
+Options RS
+End
+
+    
+G25 : DZ Aunt Latent Cv
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aM		! male add gen paths
+C low nvar nvar =$aF		! female add gen paths
+D low nvar nvar =$bM		! male specific add gen paths
+E zero nvar nvar =$bF		! 0
+F symm nvar nvar =$tau2F	! CV(Pf,P~f) 		C22
+G symm nvar nvar =$tau2M	! CV(Pf,P~f) 		?C22
+H symm nvar nvar =$delta~M 	! CV(Am,P~m)            C2
+I symm nvar nvar =$delta~F 	! CV(Am,P~f)            C4
+J symm nvar nvar =$theta~F	! Cv(Adz1,Pdz2m) 	C24
+K symm nvar nvar =$pi~M 	! CV(Bm,P~m)            C6
+L symm nvar nvar =$pi~F		! CV(Bm,P~f)            C8
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar  =$p		! cultural trans. mother daughter
+!
+Q symm nvar nvar =$Omega~ff	! Cv(PDZ1m,P~DZ2m)		R4~
+R symm nvar nvar =$Omega~f~f	! Cv(P~DZ1m,P~DZ2m)		R4~~
+S symm nvar nvar =$Omega~m~f 	! Cv(P~DZ1m,P~DZ2m)		R5~~
+!                                                                  
+T symm nvar nvar =$Theta~mFF 	! Cv(Pneph,P~DZm)               R22~
+U symm nvar nvar =$Theta~fFF 	! Cv(Pneice,P~DZm)              R23~
+V sym nvar nvar =$Theta~mMF 	! Cv(Pneph,P~DZfm)              R24~
+W sym nvar nvar =$Theta~fMF 	! Cv(Pneice,P~DZfm)             R25~
+!                                                               
+X full 1 1 
+Y symm nvar nvar =$phi~F        ! Cv(Bdz1,Pdz2m) 	C29 
+Z symm nvar nvar =$Omega~fm 	! Cv(PDZ1m,P~DZ2m)      R5~		
+End Matrices;
+Ma X .5
+! Cv(Pneph,PDZm)  Theta~mFF
+! Cv(Pneice,PDZm) Theta~fFF
+! Cv(Pneph,PDZm) Theta~mMF
+! Cv(Pneice,PDZm) Theta~fMF
+Constraint 
+(((X@B*J)+(X@B*H*A*R)+(X@D*Y)+(X@D*K*A*R)+(O*Q)+(M*G*A*R))_      ! R22~
+ ((X@C*J)+(X@C*H*A*R)+(X@E*Y)+(X@E*K*A*R)+(P*Q)+(N*G*A*R))_      ! R23~
+ ((X@B*J)+(X@B*I*A*S)+(X@D*Y)+(X@D*L*A*S)+(M*Z)+(O*F*A*S))_      ! R24~
+ ((X@C*J)+(X@C*I*A*S)+(X@E*Y)+(X@E*L*A*S)+(N*Z)+(P*F*A*S)))      ! R25~
+    =(T_U_V_W) ;
+Options RS
+End
+
+
+G26 : Sibling Uncle Observed Cv
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aM		! male add gen paths
+C low nvar nvar =$aF		! female add gen paths
+D low nvar nvar =$bM		! male specific add gen paths
+E zero nvar nvar =$bF		! 0
+F symm nvar nvar =$tau2F	! CV(Pf,P~f) 		C22
+G symm nvar nvar =$tau2M	! CV(Pf,P~f) 		C20
+H symm nvar nvar =$delta~M 	! CV(Am,P~m)            C2
+I symm nvar nvar =$delta~F 	! CV(Am,P~f)            C4
+J symm nvar nvar =$thetaM	! Cv(Adz1,Pdz2m) 	C24
+K symm nvar nvar =$pi~M 	! CV(Bm,P~m)            C6
+L symm nvar nvar =$pi~F		! CV(Bm,P~f)            C8
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar  =$p		! cultural trans. mother daughter
+!
+Q symm nvar nvar =$msib		! XiMM                  R6
+R symm nvar nvar =$Xi~mm	! Xi~MM                 R6~
+S symm nvar nvar =$Xi~fm 	! Xi~MF                 R8~
+!
+T symm nvar nvar =$ss-uncle-nep	!                       R26
+U symm nvar nvar =$ss-uncle-nei	!                       R27
+V symm nvar nvar =$os-uncle-nep !                       R28
+W symm nvar nvar =$os-uncle-nei !                       R29
+!
+X full 1 1 
+Y symm nvar nvar =$phiM          ! Cv(Bdz1,Pdz2m) 	C29 
+Z symm nvar nvar =$ossib	 ! XiOS                 R8
+End Matrices;
+Ma X .5
+!$ss-uncle-nep	
+!$ss-uncle-nei	 
+!$os-uncle-nep 	 
+!$os-uncle-nei 	 
+Constraint 
+(((X@B*J)+(X@B*I*A*R)+(X@D*Y)+(X@D*L*A*R)+(M*Q)+(O*F*A*R))_   ! R26
+ ((X@C*J)+(X@C*I*A*R)+(X@E*Y)+(X@E*L*A*R)+(N*Q)+(P*F*A*R))_   ! R27
+ ((X@B*J)+(X@B*H*A*S)+(X@D*Y)+(X@D*K*A*S)+(O*Z)+(M*G*A*S))_   ! R28
+ ((X@C*J)+(X@C*H*A*S)+(X@E*Y)+(X@E*K*A*S)+(P*Z)+(N*G*A*S)))   ! R29
+    =(T_U_V_W) ;
+Options RS
+End
+
+    
+G27 : Sibling Aunt Observed Cv
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aM		! male add gen paths
+C low nvar nvar =$aF		! female add gen paths
+D low nvar nvar =$bM		! male specific add gen paths
+E zero nvar nvar =$bF		! 0
+F symm nvar nvar =$tau2F	! CV(Pf,P~f) 		C22
+G symm nvar nvar =$tau2M	! CV(Pf,P~f) 		C20
+H symm nvar nvar =$delta~M 	! CV(Am,P~m)            C2
+I symm nvar nvar =$delta~F 	! CV(Am,P~f)            C4
+J symm nvar nvar =$thetaF	! Cv(Adz1,Pdz2m) 	C24
+K symm nvar nvar =$pi~M 	! CV(Bm,P~m)            C6
+L symm nvar nvar =$pi~F		! CV(Bm,P~f)            C8
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar  =$p		! cultural trans. mother daughter
+! 
+Q symm nvar nvar =$fsib		! XiFF                  R6 
+R symm nvar nvar =$Xi~ff	! Xi~FF                 R6~
+S symm nvar nvar =$Xi~mf 	! Xi~MF                 R8~
+!
+T symm nvar nvar =$ss-aunt-nep	!                       R30
+U symm nvar nvar =$ss-aunt-nei	!                       R31
+V symm nvar nvar =$os-aunt-nep 	!                       R32
+W symm nvar nvar =$os-aunt-nei 	!                       R33
+!                                                       
+X full 1 1 
+Y symm nvar nvar =$phiF         ! Cv(Bdz1,Pdz2m)   	C29 
+Z symm nvar nvar =$ossib	! XiOS                  R8
+
+End Matrices;
+Ma X .5
+!$ss-aunt-nep	
+!$ss-aunt-nei	 
+!$os-aunt-nep 	 
+!$os-aunt-nei 	 
+Constraint 
+(((X@B*J)+(X@B*H*A*R)+(X@D*Y)+(X@D*K*A*R)+(O*Q)+(M*G*A*R))_   ! R30
+ ((X@C*J)+(X@C*H*A*R)+(X@E*Y)+(X@E*K*A*R)+(P*Q)+(N*G*A*R))_   ! R31
+ ((X@B*J)+(X@B*I*A*S)+(X@D*Y)+(X@D*L*A*S)+(M*Z)+(O*F*A*S))_   ! R32
+ ((X@C*J)+(X@C*I*A*S)+(X@E*Y)+(X@E*L*A*S)+(N*Z)+(P*F*A*S)))   ! R33
+    =(T_U_V_W) ;
+Options RS
+End
+
+    
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Cousin relationships groups 28 - 32___________________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+G28 : MZM Cousins Observed CV
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aM		! male add gen paths
+C low nvar nvar =$aF		! female add gen paths
+D low nvar nvar =$bM		! male specific add gen paths
+E zero nvar nvar =$bF		! 0
+F symm nvar nvar =$tau2F	! CV(Pf,P~f) 		   C22
+G symm nvar nvar =$Gamma~mM 	! Cv(Pneph,P~MZm)          R14~
+H symm nvar nvar =$Gamma~fM 	! Cv(Pneice,P~MZm)         R15~
+I symm nvar nvar =$delta~F 	! CV(Af,P~f)               C4
+J symm nvar nvar =$mm-nep	! Gamma mM Cv(Pneph,PMZm)  R14
+Z symm nvar nvar =$mm-nei	! Gamma fM Cv(Pneice,PMZm) R15
+K symm nvar nvar =$pi~F 	! CV(Bf,P~f)               C8   
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar  =$p		! cultural trans. mother daughter
+!
+L symm nvar nvar =$xi.Mf	! Cv(Amz1,Pmzm2.dau)      C35
+Q symm nvar nvar =$xi.Mm	! Cv(Amz1,Pmzm2.son)      C33
+R symm nvar nvar =$alpha.Mm	! Cv(Bmz1,Pmzm2.son)      C41
+S symm nvar nvar =$alpha.Mf 	! Cv(Bmz1,Pmzm2.dau)      C43
+!
+T symm nvar nvar =$mmc-mm       !  R34
+U symm nvar nvar =$mmc-os  !! V	!  R35  !!corrected 5/08: U<->V
+V symm nvar nvar =$mmc-ff  !! U !  R36  !!corrected 5/08: U<->V
+!
+X full 1 1 
+End Matrices;
+Ma X .5
+Begin Algebra;
+Y=((((X@B*(Q+(I*A*G))))+(X@D*(R+(K*A*G)))+(M*J)+(O*F*A*G))_ !mmc-mm   R34
+   ((X@B*(L+(I*A*H)))+(X@D*(S+(K*A*H)))+(M*Z)+(O*F*A*H))_   !mmc-os   R35 !! mmc-ff   R36
+   ((X@C*(L+(I*A*H)))+(X@E*(S+(K*A*H)))+(N*Z)+(P*F*A*H)));  !mmc-ff   R36 !! mmc-os   R35
+End Algebra;
+Constraint  Y=(T_U_V) ;
+Options RS
+End
+
+    
+G29 : MZF Cousins Observed CV
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aM		! male add gen paths
+C low nvar nvar =$aF		! female add gen paths
+D low nvar nvar =$bM		! male specific add gen paths
+E zero nvar nvar =$bF		! 0
+F symm nvar nvar =$tau2M	! CV(Pm,P~m) 		    C22
+G symm nvar nvar =$Gamma~mF 	! Cv(Pneph,P~MZf)           R16~
+H symm nvar nvar =$Gamma~fF 	! Cv(Pneice,P~MZf)          R17~
+I symm nvar nvar =$delta~M 	! CV(Am,P~m)                C2
+J symm nvar nvar =$ff-nep	! Gamma mF Cv(Pneph,PMZf)   R16
+Z symm nvar nvar =$ff-nei	! Gamma fF Cv(Pneice,PMZf)  R17
+K symm nvar nvar =$pi~M 	! CV(Bm,P~m)                C6  
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar  =$p		! cultural trans. mother daughter
+!
+L symm nvar nvar =$xi.Fm	! Cv(Amz1,Pmzf2.son) 	C34
+Q symm nvar nvar =$xi.Ff	! Cv(Amz1,Pmzf2.dau) 	C36
+R symm nvar nvar =$alpha.Fm 	! Cv(Bmz1,Pmzf2.son) 	C42
+S symm nvar nvar =$alpha.Ff 	! Cv(Bmz1,Pmzf2.dau) 	C44
+!
+T symm nvar nvar =$mfc-mm       !  R37
+U symm nvar nvar =$mfc-os  !! V	!  R38  !!corrected 5/08: U<->V
+V symm nvar nvar =$mfc-ff  !! U !  R39  !!corrected 5/08: U<->V
+!
+X full 1 1 
+End Matrices;
+Ma X .5
+Begin Algebra;
+Y=(((X@B*(L+(I*A*G))))+(X@D*(R+(K*A*G)))+(O*J)+(M*F*A*G)_  !mfc-mm  R37
+   (X@B*(Q+(I*A*H)))+(X@D*(S+(K*A*H)))+(O*Z)+(M*F*A*H)_    !mfc-os  R38 !! mfc-ff  R39
+   (X@C*(Q+(I*A*H)))+(X@E*(S+(K*A*H)))+(P*Z)+(N*F*A*H));   !mfc-ff  R39 !! mfc-os  R38
+End Algebra;
+Constraint  Y=(T_U_V) ;
+Options RS
+End
+
+
+G30 : DZM Cousins Observed CV
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aM		! male add gen paths
+C low nvar nvar =$aF		! female add gen paths
+D low nvar nvar =$bM		! male specific add gen paths
+E zero nvar nvar =$bF		! 0
+F symm nvar nvar =$tau2F	! CV(Pf,P~f) 		    C22 
+G symm nvar nvar =$Theta~mMM 	! Cv(Pneph,P~DZm)           R18~
+H symm nvar nvar =$Theta~fMM 	! Cv(Pneice,P~DZm)          R19~
+I symm nvar nvar =$delta~F 	! CV(Af,P~f)                C4  
+J symm nvar nvar =$dm-nep	! Theta mM Cv(Pneph,PDZm)   R18 
+Z symm nvar nvar =$dm-nei	! Theta fM Cv(Pneice,PDZm)  R19 
+K symm nvar nvar =$pi~F 	! CV(Bf,P~f)                C8  
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar  =$p		! cultural trans. mother daughter
+!
+L symm nvar nvar =$lambda.Mf 	! Cv(Adz1,Pdzm2.son) 	C37
+Q symm nvar nvar =$lambda.Mm 	! Cv(Adz1,Pdzm2.dau) 	C39
+R symm nvar nvar =$beta.Mm  	! Cv(Bdz1,Pdzm2.son) 	C45
+S symm nvar nvar =$beta.Mf  	! Cv(Bdz1,Pdzm2.dau) 	C47
+!
+T symm nvar nvar =$dmc-mm       ! R40
+U symm nvar nvar =$dmc-os  !! V	!R41 !! R42  !!corrected 5/08: U<->V
+V symm nvar nvar =$dmc-ff  !! U !R42 !! R41  !!corrected 5/08: U<->V
+!
+X full 1 1 
+End Matrices;
+Ma X .5
+Begin Algebra;
+Y=((X@B*(Q+(I*A*G)))+(X@D*(R+(K*A*G)))+(M*J)+(O*F*A*G)_  !dmc-mm R40
+   (X@B*(L+(I*A*H)))+(X@D*(S+(K*A*H)))+(M*Z)+(O*F*A*H)_  !dmc-os R41 !! dmc-ff R41
+   (X@C*(L+(I*A*H)))+(X@E*(S+(K*A*H)))+(N*Z)+(P*F*A*H)); !dmc-ff R42 !! dmc-os R42
+!compute some parameters for use in group 32 
+W=((X@B)_(X@C)_(X@D)_(X@E)_(O*F)_(P*F));
+End Algebra;
+Constraint  Y=(T_U_V) ;
+Options RS
+End
+
+    
+G31 : DZF Cousins Observed CV
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aM		! male add gen paths
+C low nvar nvar =$aF		! female add gen paths
+D low nvar nvar =$bM		! male specific add gen paths
+E zero nvar nvar =$bF		! 0
+F symm nvar nvar =$tau2M	! CV(Pm,P~m) 		    C20 
+G symm nvar nvar =$Theta~mFF 	! Cv(Pneph,P~DZf)           R22~
+H symm nvar nvar =$Theta~fFF 	! Cv(Pneice,P~DZf)          R23~
+I symm nvar nvar =$delta~M 	! CV(Af,P~f)                C2  
+J symm nvar nvar =$df-nep	! Theta mM Cv(Pneph,PDZf)   R22 
+Z symm nvar nvar =$df-nei	! Theta fM Cv(Pneice,PDZf)  R23 
+K symm nvar nvar =$pi~M 	! CV(Bm,P~m)                C6  
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar  =$p		! cultural trans. mother daughter
+!
+L symm nvar nvar =$lambda.Fm 	! Cv(Adz1,Pdzf2.son) 	C38
+Q symm nvar nvar =$lambda.Ff 	! Cv(Adz1,Pdzf2.dau) 	C40
+R symm nvar nvar =$beta.Fm  	! Cv(Bdz1,Pdzf2.son) 	C46
+S symm nvar nvar =$beta.Ff  	! Cv(Bdz1,Pdzf2.dau) 	C48
+!
+T symm nvar nvar =$dfc-mm       ! R43
+!U symm nvar nvar =$dfc-ff      ! R44
+!V symm nvar nvar =$dfc-os	! R45
+U symm nvar nvar =$dfc-os  !! V	!R44 !! R45  !!corrected 5/08: U<->V
+V symm nvar nvar =$dfc-ff  !! U !R45 !! R44  !!corrected 5/08: U<->V
+!
+X full 1 1 
+End Matrices;
+Ma X .5
+Begin Algebra;
+Y=((X@B*(L+(I*A*G)))+(X@D*(R+(K*A*G)))+(O*J)+(M*F*A*G)_  !dfc-mm R43
+   (X@B*(Q+(I*A*H)))+(X@D*(S+(K*A*H)))+(O*Z)+(M*F*A*H)_  !dfc-os R44 !! dfc-ff R44
+   (X@C*(Q+(I*A*H)))+(X@E*(S+(K*A*H)))+(P*Z)+(N*F*A*H)); !dfc-ff R45 !! dfc-os R45
+End Algebra;
+Constraint  Y=(T_U_V) ;
+Options RS
+End
+
+    
+G32 : DZOS Cousins Observed CV
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+!parameters from group 32 
+!W=((X*B)_(X*C)_(X*D)_(X*E)_(O*F)_(P*F));
+!
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar free		! .5*male add gen paths
+C low nvar nvar free		! .5*female add gen paths
+D low nvar nvar free		! .5*male specific add gen paths
+E low nvar nvar free		! .5*0
+!!H symm nvar nvar =$Theta~mMF 	! Cv(Pneph,P~DZf)    R24~
+!!X symm nvar nvar =$Theta~fMF 	! Cv(Pneice,P~DZm)   R25~
+H symm nvar nvar =$Theta~mFM 	! Cv(Pneph,P~DZfm)      R20~  !!corrected 5/08: mMF->mFM
+X symm nvar nvar =$Theta~fFM 	! Cv(Pneice,P~DZfm)     R21~  !!corrected 5/08: fMF->fFM
+I symm nvar nvar =$delta~F 	! CV(Af,P~f)         C4
+
+!
+J symm nvar nvar =$dom-nep	! Theta mFM          R20
+Z symm nvar nvar =$dom-nei	! Theta fFM          R21
+W symm nvar nvar =$dof-nep	! Theta mMF          R24
+Y symm nvar nvar =$dof-nei	! Theta fMF          R25
+!
+K symm nvar nvar =$pi~F 	! CV(Bf,P~f)
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O symm nvar nvar free		! tau2F * cultural trans. mother son
+P symm nvar nvar free		! tau2F *cultural trans. mother daughter
+!
+L symm nvar nvar =$lambda.Fm 	! Cv(Adz1,Pdzf2.son) 	C38
+Q symm nvar nvar =$lambda.Ff 	! Cv(Adz1,Pdzm2.dau) 	C40
+R symm nvar nvar =$beta.Fm  	! Cv(Bdz1,Pdzf2.son) 	C46
+S symm nvar nvar =$beta.Ff  	! Cv(Bdz1,Pdzm2.dau) 	C48
+!
+T symm nvar nvar =$doc-mm       !  R46
+U symm nvar nvar =$doc-mf  !! V	!  R47  !!corrected 5/08: U<->V
+V symm nvar nvar =$doc-fm  !! G !  R48  !!corrected 5/08: V<->G
+G symm nvar nvar =$doc-ff  !! U !  R49  !!corrected 5/08: G<->U
+!
+F com 6 1 =W30
+End Matrices;
+
+Constraint
+!!  (((B*(L+(I*A*H)))+(D*(R+(K*A*H)))+(M*W)+(O*A*H))_ 	!doc-mm R46
+!!   ((B*(Q+(I*A*X)))+(D*(S+(K*A*X)))+(M*Y)+(O*A*X))_	!doc-ff R49
+!!   ((C*(L+(I*A*H)))+(E*(R+(K*A*H)))+(N*W)+(P*A*H))_ 	!doc-mf R47
+!!   ((C*(Q+(I*A*X)))+(E*(S+(K*A*X)))+(N*Y)+(P*A*X)))_	!doc-fm R48
+  (((B*(L+(I*A*H)))+(D*(R+(K*A*H)))+(M*J)+(O*A*H))_  !! (M*W)	!doc-mm R46  !!corrected 5/08: W<->J
+   ((B*(Q+(I*A*X)))+(D*(S+(K*A*X)))+(M*Z)+(O*A*X))_  !! (M*Y)	!doc-mf R47 !! doc-ff R49  !!corrected 5/08: Y<->Z
+   ((C*(L+(I*A*H)))+(E*(R+(K*A*H)))+(N*J)+(P*A*H))_  !! (N*W) 	!doc-fm R48 !! doc-mf R47  !!corrected 5/08: W<->J
+   ((C*(Q+(I*A*X)))+(E*(S+(K*A*X)))+(N*Z)+(P*A*X)))_ !! (N*Y)	!doc-ff R49 !! doc-fm R48  !!corrected 5/08: Y<->Z
+    F =(T_U_V_G_B_C_D_E_O_P) ;
+
+Options RS
+End
+
+    
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Grandparent relationships groups 33 - 36______________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    
+G33 : Grandfather-Grandson Observed CV
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aM		! male add gen paths
+C low nvar nvar =$bM		! male specific add gen paths
+D symm nvar nvar =$deltaM 	! CV(Am,Pm)              C1         
+E symm nvar nvar =$delta~F 	! CV(Af,P~f)             C4~ 
+F symm nvar nvar =$delta~M 	! CV(Af,P~f)             C2~ 
+G symm nvar nvar =$tau2M	! CV(Pm,P~m) 		 C20   
+H symm nvar nvar =$tau2F	! CV(Pf,P~f) 		 C22  
+I symm nvar nvar =$Delta~Mm 	! Cv(PFa,P~son)          R10~  
+J symm nvar nvar =$Delta~Mf 	! Cv(PFa,P~daughter)     R12 !R11~  
+K symm nvar nvar =$piM 		! CV(Bm,Pm)              C5 
+P symm nvar nvar =$pi~F 	! CV(Bf,P~f)             C8~
+Q symm nvar nvar =$pi~M 	! CV(Bm,P~m)             C6~
+L symm nvar nvar =$f-son	! DeltaMm                R10 
+N symm nvar nvar =$f-dau	! DeltaMf                R12 !R11 
+M low nvar nvar  =$m		! cultural trans. father son
+O low nvar nvar  =$o		! cultural trans. mother son
+!
+T symm nvar nvar =$patgf-gs     ! R50
+U symm nvar nvar =$matgf-gs     ! R51
+!
+X full 1 1 
+Y full 1 1 
+End Matrices;
+Ma X .25
+Ma Y 2
+Begin Algebra;
+V=(((X@B*(D+(E*A*G)+(Y@E*A*I)))+(X@C*(K+(P*A*G)+(Y@P*A*I)))+(M*L)+(O*(I*A*H)))_ 	!patgf-gs R50
+   ((X@B*(D+(E*A*G)+(Y@F*A*J)))+(X@C*(K+(P*A*G)+(Y@Q*A*J)))+(O*N)+(M*(J*A*G)))); 	!matgf-gs R51
+End Algebra;
+Constrain V=(T_U);
+Options RS
+End
+
+    
+G34 : Grandmother-Grandson Observed CV
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aM		! male add gen paths
+C low nvar nvar =$bM		! male specific add gen paths
+D symm nvar nvar =$deltaF 	! CV(Af,Pf)            C3  
+E symm nvar nvar =$delta~F 	! CV(Af,P~f)           C4~ 
+F symm nvar nvar =$delta~M 	! CV(Af,P~f)           C2~ 
+G symm nvar nvar =$tau2M	! CV(Pm,P~m) 	       C20   
+H symm nvar nvar =$tau2F       	! CV(Pf,P~f) 	       C22  
+I symm nvar nvar =$Delta~Fm 	! Cv(PMo,P~son)        R12~
+J symm nvar nvar =$Delta~Ff 	! Cv(PMo,P~daughter)   R13~
+K symm nvar nvar =$piF 		! CV(Bf,Pf)            C7  
+P symm nvar nvar =$pi~F        	! CV(Bf,P~f)           C8~ 
+Q symm nvar nvar =$pi~M        	! CV(Bm,P~m)           C6~ 
+L symm nvar nvar =$m-son       	! DeltaFm              R12 
+N symm nvar nvar =$m-dau       	! DeltaFf              R13   
+M low nvar nvar  =$m		! cultural trans. father son
+O low nvar nvar  =$o		! cultural trans. mother son
+!
+T symm nvar nvar =$patgm-gs     ! R52
+U symm nvar nvar =$matgm-gs     ! R53
+!
+X full 1 1 
+Y full 1 1 
+End Matrices;
+Ma X .25
+Ma Y 2
+Begin Algebra;
+V=(((X@B*(D+(F*A*H)+(Y@E*A*I)))+(X@C*(K+(Q*A*H)+(Y@P*A*I)))+(M*L)+(O*(I*A*H)))_   !patgm-gs R52
+   ((X@B*(D+(F*A*H)+(Y@F*A*J)))+(X@C*(K+(Q*A*H)+(Y@Q*A*J)))+(O*N)+(M*(J*A*G))));  !matgm-gs R53
+End Algebra;
+Constrain V=(T_U);
+Options RS
+End
+
+    
+G35 : Grandfather-Granddaughter Observed CV
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aF		! female add gen paths
+C zero nvar nvar =$bF		! female specific add gen paths
+D symm nvar nvar =$deltaM 	! CV(Am,Pm)            C1  
+E symm nvar nvar =$delta~F 	! CV(Af,P~f)           C4~ 
+F symm nvar nvar =$delta~M 	! CV(Af,P~f)           C2~ 
+G symm nvar nvar =$tau2M	! CV(Pm,P~m) 	       C20  
+H symm nvar nvar =$tau2F	! CV(Pf,P~f) 	       C22  
+I symm nvar nvar =$Delta~Mm 	! Cv(PFa,P~son)        R10~
+J symm nvar nvar =$Delta~Mf 	! Cv(PFa,P~daughter)   R12 !R11~
+K symm nvar nvar =$piM 		! CV(Bm,Pm)            C5  
+P symm nvar nvar =$pi~F 	! CV(Bf,P~f)           C8~ 
+Q symm nvar nvar =$pi~M 	! CV(Bm,P~m)           C6~ 
+L symm nvar nvar =$f-son	! DeltaMm              R10 
+N symm nvar nvar =$f-dau	! DeltaMf              R12 !R11 
+M low nvar nvar  =$n		! cultural trans. father dau
+O low nvar nvar  =$p		! cultural trans. mother dau
+!
+T symm nvar nvar =$patgf-gd     ! R54
+U symm nvar nvar =$matgf-gd     ! R55
+!
+X full 1 1 
+Y full 1 1 
+End Matrices;
+Ma X .25
+Ma Y 2
+Begin Algebra;
+V=(((X@B*(D+(E*A*G)+(Y@E*A*I)))+(X@C*(K+(P*A*G)+(Y@P*A*I)))+(M*L)+(O*(I*A*H)))_ !patgf-gd R54
+   ((X@B*(D+(E*A*G)+(Y@F*A*J)))+(X@C*(K+(P*A*G)+(Y@Q*A*J)))+(O*N)+(M*(J*A*G))));!matgf-gd R55
+End Algebra;
+Constrain V=(T_U);
+Options RS
+End
+
+    
+G36 : Grandmother-Granddaughter Observed CV
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B low nvar nvar =$aF		! female add gen paths
+C zero nvar nvar =$bF		! female specific add gen paths
+D symm nvar nvar =$deltaF 	! CV(Af,Pf)             C3  
+E symm nvar nvar =$delta~F 	! CV(Af,P~f)            C4~ 
+F symm nvar nvar =$delta~M 	! CV(Af,P~f)            C2~ 
+G symm nvar nvar =$tau2M	! CV(Pm,P~m) 		C20 
+H symm nvar nvar =$tau2F	! CV(Pf,P~f) 		C22 
+I symm nvar nvar =$Delta~Fm 	! Cv(PMo,P~son)         R12~
+J symm nvar nvar =$Delta~Ff 	! Cv(PMo,P~daughter)    R13~
+K symm nvar nvar =$piF 		! CV(Bf,Pf)             C7  
+P symm nvar nvar =$pi~F 	! CV(Bf,P~f)            C8~ 
+Q symm nvar nvar =$pi~M 	! CV(Bm,P~m)            C6~ 
+L symm nvar nvar =$m-son	! DeltaFm               R12 
+N symm nvar nvar =$m-dau	! DeltaFf               R13 
+M low nvar nvar  =$n		! cultural trans. father dau
+O low nvar nvar  =$p		! cultural trans. mother dau
+!
+T symm nvar nvar =$patgm-gd     ! R56
+U symm nvar nvar =$matgm-gd     ! R57
+!
+X full 1 1 
+Y full 1 1 
+End Matrices;
+Ma X .25
+Ma Y 2
+Begin Algebra;
+V=(((X@B*(D+(F*A*H)+(Y@E*A*I)))+(X@C*(K+(Q*A*H)+(Y@P*A*I)))+(M*L)+(O*(I*A*H)))_ !patgm-gd R56
+   ((X@B*(D+(F*A*H)+(Y@F*A*J)))+(X@C*(K+(Q*A*H)+(Y@Q*A*J)))+(O*N)+(M*(J*A*G))));!matgm-gd R57
+End Algebra;
+Constrain V=(T_U);
+Options RS
+End
+
+    
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Inlaw relationships groups 37 - 39____________________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    
+G37 : Twins and Sibs in Law
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B symm nvar nvar =$tau2M	! CV(Pm,P~m) 	       C20 	
+C symm nvar nvar =$tau2F	! CV(Pf,P~f) 	       C22 
+D symm nvar nvar =$Phi~mm	! Cv(PMZ1m,P~MZ2m)     R1~ 	
+E symm nvar nvar =$Phi~ff	! Cv(PMZ1f,P~MZ2f)     R2~  
+F symm nvar nvar =$Omega~mm 	! Cv(PDZ1m,P~DZ2m)     R3~  	
+G symm nvar nvar =$Omega~ff 	! Cv(PDZ1f,P~DZ2f)     R4~ 
+H symm nvar nvar =$Omega~fm 	! Cv(PDZ1m,P~DZ2f)     R5a~
+W symm nvar nvar =$Omega~mf 	! Cv(PDZ1m,P~DZ2f)     R5b~ 
+I symm nvar nvar =$Xi~mm	! Cv(PSib1m,P~Sib2m)   R6~		
+J symm nvar nvar =$Xi~ff	! Cv(PSib1f,P~Sib2f)   R7~
+K symm nvar nvar =$Xi~fm	! Cv(PSib1m,P~Sib2f)   R8a~
+X symm nvar nvar =$Xi~mf	! Cv(PSib1m,P~Sib2f)   R8b~
+! twin-spouse
+L symm nvar nvar =$mzm-sp       ! R58
+M symm nvar nvar =$mzf-sp       ! R59
+N symm nvar nvar =$dzm-sp       ! R60
+O symm nvar nvar =$dzf-sp       ! R61
+P symm nvar nvar =$dzo-mmsp     ! R62
+Q symm nvar nvar =$dzo-ffsp     ! R62
+! sib-spouse - by sex 
+R symm nvar nvar =$s-sp-m       ! R64
+S symm nvar nvar =$s-sp-f       ! R65
+T symm nvar nvar =$s-sp-mf      ! R66
+U symm nvar nvar =$s-sp-fm      ! R67
+End Matrices;
+Begin Algebra;
+V=((C*A*D)_                     ! R58 
+(B*A*E)_                        ! R59 
+(C*A*F)_                        ! R60 
+(B*A*G)_                        ! R61 
+(B*A*H)_                        ! R62 
+(C*A*W)_                        ! R62 
+(C*A*I)_                        ! R64 
+(B*A*J)_  !! (B*A*I)_                       ! R65  !!corrected 5/08: I>J
+(B*A*K)_                        ! R66 
+(C*A*X));                       ! R67 
+End Algebra;
+Constraint V=(L_M_N_O_P_Q_R_S_T_U);
+Options RS
+End
+
+   
+G38 : Spouses and Parents in Law
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A symm nvar nvar =$d		! Assortitive mating
+B symm nvar nvar =$tau2M	! CV(Pm,P~m) 	       C20 
+C symm nvar nvar =$tau2F	! CV(Pf,P~f) 	       C22 
+D symm nvar nvar =$Phi~m~m	! Cv(PMZ1m,P~MZ2m)     R1~~ 	
+E symm nvar nvar =$Phi~f~f	! Cv(PMZ1f,P~MZ2f)     R2~~ 
+F symm nvar nvar =$Omega~m~m 	! Cv(PDZ1m,P~DZ2m)     R3~~ 	
+G symm nvar nvar =$Omega~f~f 	! Cv(PDZ1f,P~DZ2f)     R4~~ 
+H symm nvar nvar =$Omega~m~f 	! Cv(PDZ1m,P~DZ2f)     R5a~~
+I symm nvar nvar =$Delta~Mm 	! Cv(PFa,P~son)        R10~
+J symm nvar nvar =$Delta~Mf 	! Cv(PFa,P~daughter)   R12 !R11~
+K symm nvar nvar =$Delta~Fm 	! Cv(PMo,P~son)        R12~
+L symm nvar nvar =$Delta~Ff 	! Cv(PMo,P~daughter)   R13~
+! spouse-spouse by zyg
+M symm nvar nvar =$mzm-sp_sp    ! R68
+N symm nvar nvar =$mzf-sp_sp    ! R69
+O symm nvar nvar =$dzm-sp_sp    ! R70
+P symm nvar nvar =$dzf-sp_sp    ! R71
+Q symm nvar nvar =$dzo-sp_sp    ! R72
+! gf/gm-(sex)spouce
+R symm nvar nvar =$gf-fsp 	! R73
+S symm nvar nvar =$gm-fsp 	! R74
+T symm nvar nvar =$gf-msp 	! R75
+U symm nvar nvar =$gm-msp 	! R76
+End Matrices;
+Begin Algebra;
+V=((C&(A&D))_      ! R68
+(B&(A&E))_         ! R69
+(C&(A&F))_         ! R70
+(B&(A&G))_         ! R71
+(B*(A&H)*C')_      ! R72
+(C*A*I)_           ! R73
+(C*A*K)_           ! R74
+(B*A*J)_           ! R75
+(B*A*L));          ! R76
+!for use in Group 39
+W=(B*A)_(B*A)_(C*A)_(C*A)_(C*A)_(C*A)_
+(C*A)_(C*A)_(B*A)_(B*A)_(B*A)_(B*A);
+End Algebra;
+Constraint V=(M_N_O_P_Q_R_S_T_U);
+Options RS
+End
+
+    
+G39 : Avunculars in Law
+Constraint
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Begin Matrices;
+A comp 12 nvar =W38             !d*Tau2M/F
+!MZ Uncles
+C symm nvar nvar =$Gamma~mF 	! Cv(Pneph,P~MZf)   R14~
+D symm nvar nvar =$Gamma~fF 	! Cv(Pneice,P~MZf)  R15~
+!MZ Aunts                                               
+E symm nvar nvar =$Gamma~mM 	! Cv(Pneph,P~MZm)   R16~
+F symm nvar nvar =$Gamma~fM 	! Cv(Pneice,P~MZm)  R17~
+!DZ Uncles                                              
+G symm nvar nvar =$Theta~mMM 	! Cv(Pneph,P~DZm)   R18~
+H symm nvar nvar =$Theta~fMM 	! Cv(Pneice,P~DZm)  R19~
+I symm nvar nvar =$Theta~mFM 	! Cv(Pneph,P~DZfm)  R20~
+J symm nvar nvar =$Theta~fFM 	! Cv(Pneice,P~DZfm) R21~
+!DZ Aunts
+K symm nvar nvar =$Theta~mFF 	! Cv(Pneph,P~DZm)   R22~
+L symm nvar nvar =$Theta~fFF 	! Cv(Pneice,P~DZm)  R23~
+M symm nvar nvar =$Theta~mMF 	! Cv(Pneph,P~DZmf)  R24~
+N symm nvar nvar =$Theta~fMF 	! Cv(Pneice,P~DZmf) R25~
+!________AVUNCULARS married in_________________________
+O symm nvar nvar =$mfsp-nep	! MZf.spouse - nephew  R77
+P symm nvar nvar =$mfsp-nei	! MZf.spouse - niece   R78
+Q symm nvar nvar =$mmsp-nep	! MZm.spouse - nephew  R79
+R symm nvar nvar =$mmsp-nei	! Mzm.spouse - niece   R80
+!
+S symm nvar nvar =$dmsp-nep	! Dzm.spouse - neph    R81
+T symm nvar nvar =$dmsp-nei	! Dzm.spouse - niece   R82
+U symm nvar nvar =$domsp-nep	! Dzf.spouse - neph    R83
+V symm nvar nvar =$domsp-nei	! Dzf.spouse - niece   R84
+!
+W symm nvar nvar =$dfsp-nep	! R85
+X symm nvar nvar =$dfsp-nei	! R86
+Y symm nvar nvar =$dofsp-nep	! R87
+Z symm nvar nvar =$dofsp-nei	! R88
+End Matrices;
+Begin Algebra;
+B=(A.(C_D_E_F_G_H_I_J_K_L_M_N));
+End Algebra;
+Constrain B=(O_P_Q_R_S_T_U_V_W_X_Y_Z);
+Options RS
+End
+
+    
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!_________Data groups 40-45_____________________________________________!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    
+GROUP40: MZM Data group 
+!Estimate the covs
+Data NI=37
+Missing=-999
+Rec File =MZM
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select Fa Mo Tw1 Tw2 bro1 bro2 sis1 sis2 sp.tw1 son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 sp.tw2 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 ;
+!definition
+Begin Matrices; 
+A computed 8 8 = P1   !MZM Nuclear family
+B computed 5 2 = U2   !grandparents w female spouse and grand children
+C computed 5 1 = V1   !spouse father offspring
+D computed 5 1 = S3   !MZM co-twin spouse & avunc
+E computed 4 4 = V2   !non-twin sibling inlaws and avuncs spouse is female
+F computed 5 5 = Y1   !2nd nuclear fam mother brothers and sisters
+G computed 5 5 = U3   !spouse-spouse, twin avunc & cousins
+K computed 1 4 = W5 !! V5   !female spouse of male twin - 2 male sibs, 2 female sibs  !!corrected 5/08: V<->W
+P full nvar 1 free    !mean_m     
+Q full nvar 1 free    !mean_f     
+End Matrices;
+Begin Algebra;
+H=B|C|D|(K_E);
+I=B|D|C|(K_E);
+J=
+ A | H' | I' _
+ H | F  | G' _
+ I | G  | F ;
+End Algebra;
+!Means 
+!     mean_m mean_f mean_m mean_m mean_m mean_m mean_f mean_f
+Means   P  |   Q  |   P  |   P  |   P  |   P  |   Q  |   Q  |
+        Q  |   P  |   P  |   Q  |   Q  |
+        Q  |   P  |   P  |   Q  |   Q  ;
+Covariances J ;
+Option RS
+ $st_means        
+ Matrix P .00768715        ! start value for mean
+ Matrix Q .01208813        ! start value for mean
+End
+
+    
+GROUP41: MZF Data group 
+!Estimate the covs
+Data NI=37
+Missing=-999
+Rec File =MZF
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select Fa Mo Tw1 Tw2 bro1 bro2 sis1 sis2 sp.tw1 son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 sp.tw2 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 ;
+!definition
+Begin Matrices; 
+A computed 8 8 = Q1   !MZF Nuclear family
+B computed 5 2 = T2   !grandparents w male spouse and grand children
+C computed 5 1 = W1   !spouse mother offspring
+D computed 5 1 = T3   !MZF co-twin spouse & avunc
+E computed 4 4 = W2   !non-twin sibling inlaws and avuncs spouse is male
+F computed 5 5 = X1   !2nd nuclear fam father brothers and sisters
+G computed 5 5 = V3   !spouse-spouse, twin avunc & cousins
+K computed 1 4 = V5 !! W5   !male spouse of female twin - 2 male sibs, 2 female sibs  !!corrected 5/08: W<->V
+P full nvar 1  = $mean_m     
+Q full nvar 1  = $mean_f     
+End Matrices;
+Begin Algebra;
+H=B|C|D|(K_E);
+I=B|D|C|(K_E);
+J=
+ A | H' | I' _
+ H | F  | G' _
+ I | G  | F ;
+End Algebra;
+!Means 
+!     mean_m mean_f mean_m mean_m mean_m mean_m mean_f mean_f
+Means   P  |   Q  |   Q  |   Q  |   P  |   P  |   Q  |   Q  |
+        P  |   P  |   P  |   Q  |   Q  |
+        P  |   P  |   P  |   Q  |   Q  ;
+Covariances J ;
+Option RS
+End
+
+    
+GROUP42 DZM Data group 
+!Estimate the covs
+Data NI=37
+Missing=-999
+Rec File =DZM
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select Fa Mo Tw1 Tw2 bro1 bro2 sis1 sis2 sp.tw1 son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 sp.tw2 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 ;
+!definition
+Begin Matrices; 
+A computed 8 8 = R1   !DZM Nuclear family
+B computed 5 2 = U2   !grandparents w female spouse and grand children
+C computed 5 1 = V1   !spouse father offspring
+D computed 5 1 = S4   !DZM co-twin spouse & avunc
+E computed 4 4 = V2   !non-twin sibling inlaws and avuncs spouse is female
+F computed 5 5 = Y1   !2nd nuclear fam mother brothers and sisters
+G computed 5 5 = U4   !spouse-spouse, twin avunc & cousins
+K computed 1 4 = W5  !! V5   !female spouse of male twin - 2 male sibs, 2 female sibs  !!corrected 5/08: V<->W
+P full nvar 1  = $mean_m     
+Q full nvar 1  = $mean_f     
+End Matrices;
+Begin Algebra;
+H=B|C|D|(K_E);
+I=B|D|C|(K_E);
+J=
+ A | H' | I' _
+ H | F  | G' _
+ I | G  | F ;
+End Algebra;
+!Means 
+!     mean_m mean_f mean_m mean_m mean_m mean_m mean_f mean_f
+Means   P  |   Q  |   P  |   P  |   P  |   P  |   Q  |   Q  |
+        Q  |   P  |   P  |   Q  |   Q  |
+        Q  |   P  |   P  |   Q  |   Q  ;
+Covariances J ;
+Option RS
+End
+
+    
+GROUP43: DZF Data group 
+!Estimate the covs
+Data NI=37
+Missing=-999
+Rec File =DZF
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select Fa Mo Tw1 Tw2 bro1 bro2 sis1 sis2 sp.tw1 son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 sp.tw2 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 ;
+!definition
+Begin Matrices; 
+A computed 8 8 = S1   !DZF Nuclear family
+B computed 5 2 = T2   !grandparents w male spouse and grand children
+C computed 5 1 = W1   !spouse mother offspring
+D computed 5 1 = T4   !DZF co-twin spouse & avunc
+E computed 4 4 = W2   !non-twin sibling inlaws and avuncs spouse is male
+F computed 5 5 = X1   !2nd nuclear fam father brothers and sisters
+G computed 5 5 = V4   !spouse-spouse, twin avunc & cousins
+K computed 1 4 = V5 !! W5   !male spouse of female twin - 2 male sibs, 2 female sibs  !!corrected 5/08: W<->V
+P full nvar 1  = $mean_m     
+Q full nvar 1  = $mean_f     
+End Matrices;
+Begin Algebra;
+H=B|C|D|(K_E);
+I=B|D|C|(K_E);
+J=
+ A | H' | I' _
+ H | F  | G' _
+ I | G  | F ;
+End Algebra;
+!Means 
+!     mean_m mean_f mean_m mean_m mean_m mean_m mean_f mean_f
+Means   P  |   Q  |   Q  |   Q  |   P  |   P  |   Q  |   Q  |
+        P  |   P  |   P  |   Q  |   Q  |
+        P  |   P  |   P  |   Q  |   Q  ;
+Covariances J ;
+Option RS
+End
+
+
+GROUP44: DZFM Data group 
+!Estimate the covs
+Data NI=37
+Missing=-999
+Rec File =DZOS
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select Fa Mo Tw2 Tw1 bro1 bro2 sis1 sis2 sp.tw2 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 sp.tw1 son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 ;
+!definition
+Begin Matrices; 
+A computed 8 8 = T1   !DZO Nuclear family
+!
+B computed 5 2 = T2   !grandparents w male spouse and grand children
+C computed 5 1 = W1   !spouse mother offspring
+D computed 5 1 = S5 !!T5  !DZO co-twin spouse & avunc  !!corrected 6/08: S<->T
+E computed 4 4 = W2   !non-twin sibling inlaws and avuncs spouse is male
+F computed 5 5 = X1   !2nd nuclear fam father brothers and sisters
+G computed 5 5 = U5   !spouse-spouse, twin avunc & cousins
+!
+H computed 5 2 = U2   !grandparents w female spouse and grand children
+I computed 5 1 = V1   !spouse father offspring
+J computed 5 1 = T5 !!S5  !DZO co-twin spouse & avunc  !!corrected 6/08: T<->S
+K computed 4 4 = V2   !non-twin sibling inlaws and avuncs spouse is female
+L computed 5 5 = Y1   !2nd nuclear fam mother brothers and sisters
+P full nvar 1  = $mean_m     
+Q full nvar 1  = $mean_f     
+!R computed 1 4  =W5 !! V5  !female spouse of male twin - 2 male sibs, 2 female sibs   !!corrected 5/08: V<->W 
+!S computed 1 4  =V5 !! W5  !male spouse of female twin - 2 male sibs, 2 female sibs   !!corrected 5/08: W<->V
+S computed 1 4  =W5  !!R V5  !female spouse of male twin - 2 male sibs, 2 female sibs  !!corrected 6/08: R<->S
+R computed 1 4  =V5  !!S W5  !male spouse of female twin - 2 male sibs, 2 female sibs  !!corrected 6/08: S<->R
+End Matrices;
+Begin Algebra;
+N=B|C|D|(R_E);
+O=H|J|I|(S_K);
+T=
+ A | N' | O' _
+ N | F  | G'  _
+ O | G  | L ;
+End Algebra;
+!Means 
+!     mean_m mean_f mean_m mean_m mean_m mean_m mean_f mean_f
+Means   P  |   Q  |   Q  |   P  |   P  |   P  |   Q  |   Q  |
+        P  |   P  |   P  |   Q  |   Q  |
+        Q  |   P  |   P  |   Q  |   Q  ;
+Covariances T ;
+Option RS
+End
+
+    
+Group 45: Sumary Group
+Calc
+Begin Matrices;
+A computed 6 4 =Z1
+B computed 5 4 =Z2
+C computed 5 4 =Z3
+D computed 5 4 =Z4
+E computed 5 4 =Z5
+End Matrices;
+Begin Algebra;
+F=A_B_C_D_E;
+End algebra;
+  Label Row F var spouse mztw dztw si pc gp_pat gp_mat gp_sp pat_av mat_av av_mz av_mzsp mzsp mzm_co mzf_co
+  av_dz av_dzsp dzsp dzm_co dzf_co av_dzo av_dzosp dzosp dzom_co sp_sib
+  Label Col F Mm Ff Mf Fm
+!Option Jiggle 
+Option MxF=casObCov.txt
+End
+
+      
+Group 46: Path Coefficient Summary Group Male
+Calc
+Begin Matrices;
+A low nvar nvar =$aM
+B low nvar nvar =$bM
+D low nvar nvar =$dM
+E low nvar nvar =$eM
+Q low nvar nvar =$q 
+R low nvar nvar =$r
+S low nvar nvar =$sM
+T low nvar nvar =$tM
+V low nvar nvar =$vM
+X low nvar nvar =$xM
+W low nvar nvar =$wM
+Y low nvar nvar =$y
+H full nvar nvar 
+!
+G low nvar nvar =$sigma2M
+End Matrices;
+Matrix H 99
+Begin Algebra;
+I=(A*W)+(A*W)+(B*V)+(B*V) ; ! Cov's (the nasty middle chunk)  THIS IS "Cov.GE" in Parameter.Comparison = 2*a*w
+F=G_H_A_B_D_E_S_T;    !path coefficients
+J=R_W_V_
+(A*Q*A)_(B*Y*B)_((A*B*R)+(A*B*R)+(A*Q*A)+(B*Y*B))_(D*D)_(S*S)_(T*T)_(X)_(E*E)_(I)_ !unstandardized variance components
+(A*Q*A)%G_(B*Y*B)%G_((A*B*R)+(A*B*R)+(A*Q*A)+(B*Y*B))%G_(D*D)%G_(S*S)%G_(T*T)%G_(X)%G_(E*E)%G_(I)%G; !standardized variance components
+End Algebra;
+Labels Row J CovAB CovAF CovBF Va Vb Vta Vd Vs Vt Vf Ve Vge SVa SVb SVta SVd SVs SVt SVf SVe SVge
+Labels Row F Var delta a b d e s t
+End
+
+Group 47: Path Coefficient Summary Group Female
+Calc
+Begin Matrices;
+A low nvar nvar =$aF
+B zero nvar nvar =$bF
+D low nvar nvar =$dF
+E low nvar nvar =$eF
+Q low nvar nvar =$q 
+R low nvar nvar =$r
+S low nvar nvar =$sF
+T low nvar nvar =$tF
+V low nvar nvar =$vF
+X low nvar nvar =$xF
+W low nvar nvar =$wF
+Y low nvar nvar =$y
+G low nvar nvar =$sigma2F
+H full nvar nvar 
+!
+End Matrices;
+Matrix H 99
+Begin Algebra;
+I=(A*W)+(A*W)+(B*V)+(B*V) ; ! Cov's (the nasty middle chunk)
+F=G_H_A_H_D_E_S_T;    !path coefficients
+J=R_W_V_
+(A*Q*A)_H_((A*B*R)+(A*B*R)+(A*Q*A)+(B*Y*B))_(D*D)_(S*S)_(T*T)_(X)_(E*E)_(I)_ !unstandardized variance components
+(A*Q*A)%G_H_((A*B*R)+(A*B*R)+(A*Q*A)+(B*Y*B))%G_(D*D)%G_(S*S)%G_(T*T)%G_(X)%G_(E*E)%G_(I)%G; !standardized variance components
+End Algebra;
+Labels Row J CovAB CovAF CovBF Va Vb Vta Vd Vt Vs Vf Ve Vge SVa SVb SVta SVd SVt SVs SVf SVe SVge
+Labels Row F Var delta a b d e s t
+option jiggle
+!option thard=3
+End
+
+
+GROUP48: Initalise placeholders for the observed data
+!Nuclear Family Group
+Calculation
+ Begin Matrices;
+ !_________NUCELAR FAMILY______________________)
+  A symm nvar nvar = $spouse	(A1)  R9
+  B symm nvar nvar = $sigma2M	(B1)  C19
+  C symm nvar nvar = $sigma2F	(C1)  C21
+  D symm nvar nvar = $f-son	(D1)  R10
+  E symm nvar nvar = $m-son	(E1)  R11
+  F symm nvar nvar = $f-dau	(F1)  R12
+  G symm nvar nvar = $m-dau	(G1)  R13
+  H symm nvar nvar = $mm-mz	(H1)  R1
+  I symm nvar nvar = $ff-mz	(I1)  R2
+  J symm nvar nvar = $mm-dz	(J1)  R3
+  K symm nvar nvar = $ff-dz	(K1)  R4
+  L symm nvar nvar = $os-dz	(L1)  R5
+  M symm nvar nvar = $msib	(M1)  R6
+  N symm nvar nvar = $fsib	(N1)  R7
+  O symm nvar nvar = $ossib  	(O1)  R8  
+  U full nvar nvar                             
+ End Matrices;                                 
+  Matrix U 99
+ Begin Algebra;
+  Z=B|C|U|U_H|I|U|U_J|K|L|U_M|N|O|U_D|G|F|E;
+  Y=U|U|A|U;
+ End Algebra;
+  Label Row Z var mztw dztw si pc 
+  Label Col Z Mm Ff Mf Fm
+  Label Row Y spouse
+ Option NoOutput
+End
+     
+GROUP49: Initalise placeholders  for the observed data
+!grand parents & non-twin avunc
+ Calculation
+ Begin Matrices;
+ !_________INLAWS & GRANDPARENTS____________)
+ ! gf/gm-(sex)spouce)
+  A symm nvar nvar = $gf-msp 	(A2) R75
+  B symm nvar nvar = $gf-fsp 	(B2) R73
+  C symm nvar nvar = $gm-msp 	(C2) R76
+  D symm nvar nvar = $gm-fsp 	(D2) R74
+  E symm nvar nvar = $patgf-gd   (E2) R54
+  F symm nvar nvar = $patgf-gs   (F2) R50
+  G symm nvar nvar = $patgm-gd   (G2) R56
+  H symm nvar nvar = $patgm-gs   (H2) R52
+  Q symm nvar nvar = $matgf-gd   (Q2) R55
+  R symm nvar nvar = $matgf-gs   (R2) R51
+  S symm nvar nvar = $matgm-gd   (S2) R57
+  T symm nvar nvar = $matgm-gs   (X2) R53 
+  !aunts and uncles who are related by same sex siblings)
+  I symm nvar nvar = $ss-uncle-nep	(I2) R26
+  J symm nvar nvar = $ss-uncle-nei	(J2) R27
+  K symm nvar nvar = $ss-aunt-nep	(K2) R30
+  L symm nvar nvar = $ss-aunt-nei	(L2) R31
+  !aunts and uncles who are related by os siblings)
+  M symm nvar nvar = $os-uncle-nep	(M2) R28
+  N symm nvar nvar = $os-uncle-nei	(N2) R29
+  O symm nvar nvar = $os-aunt-nep	(O2) R32
+  P symm nvar nvar = $os-aunt-nei	(P2) R33
+ End Matrices;
+ Begin Algebra;
+  Z=F|G|E|H_R|S|Q|T;
+  Y=A|D|C|B;
+  X=I|P|J|O_M|L|N|K;
+ End Algebra;
+  Label Row Z gp_pat gp_mat
+  Label Row Y gp_sp
+  Label Row X pat_avunc mat_avunc
+  Label Col Z Mm Ff Mf Fm
+ Option NoOutput
+END
+
+      
+GROUP50: Initalise placeholders  for the observed data
+!MZ Avuncular
+ Calculation
+ Begin Matrices;
+  A symm nvar nvar = $mzm-sp	(A3)  R58
+  B symm nvar nvar = $mzf-sp	(B3)  R59
+  C symm nvar nvar = $mm-nep	(C3)  R14
+  D symm nvar nvar = $mm-nei	(D3)  R15
+  E symm nvar nvar = $ff-nep	(E3)  R16
+  F symm nvar nvar = $ff-nei	(F3)  R17
+  G symm nvar nvar = $mmsp-nep	(G3)  R79
+  H symm nvar nvar = $mmsp-nei	(H3)  R80
+  I symm nvar nvar = $mfsp-nep	(I3)  R77
+  J symm nvar nvar = $mfsp-nei	(J3)  R78
+  K symm nvar nvar = $mmc-mm	(K3)  R34
+  L symm nvar nvar = $mmc-ff	(L3)  R36
+  M symm nvar nvar = $mmc-os	(M3)  R35
+  N symm nvar nvar = $mfc-mm	(N3)  R37
+  O symm nvar nvar = $mfc-ff	(O3)  R39
+  P symm nvar nvar = $mfc-os	(P3)  R38
+  Q symm nvar nvar = $mzm-sp_sp	(Q3)  R68
+  R symm nvar nvar = $mzf-sp_sp	(R3)  R69
+  U full nvar nvar                            
+ End Matrices;                                 
+  Matrix U 99
+ Begin Algebra;
+  Z=C|U|D|U_U|F|U|E;
+!  Y=U|J|U|I_G|U|H|U;  !  Y=I|U|J|U_U|H|U|G;
+  Y=U|H|U|G_I|U|J|U;
+  X=R|Q|U|U;
+  W=U|U|B|A;
+  V=K|L|M|U_N|O|P|U;
+ End Algebra;
+  Label Row Z avunc_mz a2
+  Label Row Y avunc_mzsp a2 
+  Label Row X mzsp1
+  Label Row W mzsp2
+  Label Row V mzm_co mzf_co
+  Label Col Z Mm Ff Mf Fm
+ Option NoOutput
+End
+
+      
+GROUP51: Initalise placeholders  for the observed data
+!DZ Avuncular
+ Calculation
+ Begin Matrices;
+  A symm nvar nvar = $dzm-sp	(A4)  R59
+  B symm nvar nvar = $dzf-sp	(B4)  R60
+  C symm nvar nvar = $dm-nep	(C4)  R18
+  D symm nvar nvar = $dm-nei	(D4)  R19
+  E symm nvar nvar = $df-nep	(E4)  R22
+  F symm nvar nvar = $df-nei	(F4)  R23
+  G symm nvar nvar = $dmsp-nep	(G4)  R81
+  H symm nvar nvar = $dmsp-nei	(H4)  R82
+  I symm nvar nvar = $dfsp-nep	(I4)  R85
+  J symm nvar nvar = $dfsp-nei	(J4)  R86
+  K symm nvar nvar = $dmc-mm	(K4)  R40
+  L symm nvar nvar = $dmc-ff	(L4)  R42
+  M symm nvar nvar = $dmc-os	(M4)  R41
+  N symm nvar nvar = $dfc-mm	(N4)  R43
+  O symm nvar nvar = $dfc-ff	(O4)  R45
+  P symm nvar nvar = $dfc-os	(P4)  R44
+  Q symm nvar nvar = $dzm-sp_sp	(Q4)  R70
+  R symm nvar nvar = $dzf-sp_sp	(R4)  R71
+  U full nvar nvar                             
+  T full 1 1
+ End Matrices;                                 
+  Matrix U 1
+  Matrix T 99
+ Begin Algebra;
+  Z=C|U|D|U_U|F|U|E;
+  Y=U|H|U|G_I|U|J|U;
+  X=R|Q|U|U;
+  W=U|U|B|A;
+  V=K|L|M|T_N|O|P|T;
+ End Algebra;
+  Label Row Z avunc_dz a2
+  Label Row Y avunc_dzsp a2
+  Label Row X dzsp1
+  Label Row W dzsp2
+  Label Row V dzm_co dzf_co
+  Label Col Z Mm Ff Mf Fm
+ Option NoOutput
+End
+      
+GROUP52: Initalise placeholders  for the observed data
+!DZ OS Avuncular
+ Calculation
+ Begin Matrices;
+  A symm nvar nvar = $dzo-mmsp	(A5)  R62 
+  B symm nvar nvar = $dzo-ffsp	(B5)  R63
+  C symm nvar nvar = $dom-nep	(C5)  R20
+  D symm nvar nvar = $dom-nei	(D5)  R21
+  E symm nvar nvar = $dof-nep	(E5)  R24
+  F symm nvar nvar = $dof-nei	(F5)  R25
+  G symm nvar nvar = $domsp-nep	(G5)  R83
+  H symm nvar nvar = $domsp-nei	(H5)  R84
+  I symm nvar nvar = $dofsp-nep	(I5)  R87
+  J symm nvar nvar = $dofsp-nei	(J5)  R88
+  K symm nvar nvar = $doc-mm	(K5)  R46
+  L symm nvar nvar = $doc-ff	(L5)  R49
+  M symm nvar nvar = $doc-mf	(M5)  R47
+  N symm nvar nvar = $doc-fm	(R5)  R48
+  S symm nvar nvar = $dzo-sp_sp	(N5)  R72
+!Sibling inlaws - non twin                     
+  O symm nvar nvar = $s-sp-m	(O5)  R66
+  P symm nvar nvar = $s-sp-f	(P5)  R67
+  Q symm nvar nvar = $s-sp-mf	(Q5)  R64
+  R symm nvar nvar = $s-sp-fm	(X5)  R65
+  U full nvar nvar                             
+ End Matrices;                                 
+  Matrix U 1
+ Begin Algebra ;
+  Z=U|F|U|E_C|U|D|U;
+  Y=I|U|J|U_U|H|U|G;
+  X=U|U|S|U;
+  W=A|B|U|U;
+  V=K|L|M|N;
+  T=Q|R|P|O;
+ End Algebra;
+  Label Row Z avunc_dzo a2
+  Label Row Y avunc_dzosp a2
+  Label Row X dzosp1
+  Label Row W dzosp2
+  Label Row V dzom_co
+  Label Row T sp_sib
+  Label Col Z Mm Ff Mf Fm
+ Option NoOutput
+End
+
+Group53
+ Calculation
+ Begin Matrices;
+  A Computed =Z48
+  B Computed =Z49
+  C Computed =Z50
+  D Computed =Z51
+  E Computed =Z52
+  F Computed =X49
+  G Computed =V50
+  H Computed =V51
+  I Computed =V52
+  J Computed =Y48
+  K Computed =W50
+  L Computed =W51
+  M Computed =W52
+  N Computed =T52
+  O Computed =Y49
+  P Computed =X50
+  Q Computed =X51
+  R Computed =X52
+  S Computed =Y50
+  T Computed =Y51
+  U Computed =Y52
+  V Unit 1 1 
+  W Full 1 1 
+ End Matrices;
+  Matrix W 99
+ Begin Algebra;
+  X = (V|V|V|W);
+  Z = A_B_C_(D.E)_F_G_H_I_J_K_(L.M)_N_O_P_(Q.R.X)_S_(T.U);
+ End Algebra;
+  Labels Row Z var mztw dztw si pc gpp gpm amzp amzm adzp adzm asip asim
+   comzm comzf codzm codzf codzmf sp smztw sdztw ssi spa sspmz sspdz samzp samzm sadzp sadzm
+  Labels Col Z Mm Ff Mf Fm
+ Option NoOutput
+End
+
+Group54: no sex differences
+ Calculation
+ Begin Matrices;   
+  V symm nvar nvar = $sigma2M	(B1)  C19
+  A symm nvar nvar = $mm-mz	(H1)  R1
+  B symm nvar nvar = $mm-dz	(J1)  R3
+  C symm nvar nvar = $msib	(M1)  R6
+  D symm nvar nvar = $f-son	(D1)  R10
+  E symm nvar nvar = $patgf-gs  (F2) R50
+  F symm nvar nvar = $mm-nep	(C3)  R14
+  G symm nvar nvar = $dm-nep	(C4)  R18
+  H symm nvar nvar = $ss-uncle-nep	(I2) R26
+  I symm nvar nvar = $mmc-mm	(K3)  R34
+  J symm nvar nvar = $dmc-mm	(K4)  R40
+  K symm nvar nvar = $spouse	(A1)  R9
+  L symm nvar nvar = $mzm-sp	(A3)  R58
+  M symm nvar nvar = $dzm-sp	(A4)  R59
+  N symm nvar nvar = $s-sp-m	(O5)  R66
+  O symm nvar nvar = $gf-msp 	(A2) R75
+  P symm nvar nvar = $mzm-sp_sp	(Q3)  R68
+  Q symm nvar nvar = $dzm-sp_sp	(Q4)  R70
+  R symm nvar nvar = $mmsp-nep	(G3)  R79
+  S symm nvar nvar = $dmsp-nep	(G4)  R81
+ End Matrices;
+ Begin Algebra;
+  X= (V_ A_ B_ C_ D_ E_ F_ G_ H_ I_ J_ K_ L_ M_ N_ O_ P_ Q_ R_ S);
+ End Algebra;
+ Option NoOutput
+End
+
+
+Group 55: exporting summary matrices
+Calc 
+Begin Matrices;
+A comp 8 1 =F46
+B comp 21 1 =J46
+C comp 8 1 =F47
+D comp 21 1 =J47
+E symm nvar nvar =$d		! Assortitive mating copath
+H full nvar nvar 
+!
+M low nvar nvar  =$m		! cultural trans. father son
+N low nvar nvar  =$n		! cultural trans. father daughter
+O low nvar nvar  =$o		! cultural trans. mother son
+P low nvar nvar  =$p		! cultural trans. mother daughter
+!
+Q full nvar 1   = $mean_m     
+R full nvar 1   = $mean_f     
+!
+S symm nvar nvar =$Zd		! Cv(dM,dF)
+T symm nvar nvar =$Zs		! Cv(sM,sF)
+U symm nvar nvar =$Zt		! Cv(tM,tF)
+V full 1 1 =$spouse
+X Computed =Z53
+Y Computed =X54
+End Matrices;
+Matrix H 99
+Begin Algebra;
+Z=A|C|(H_E_H_H_H_H_H_H)|(H_V_H_H_H_H_H_H)_
+  M|P|N|O_
+  Q|R|H|H_
+  B|D|(H_H_H_ H_H_H_S_T_U_H_H_H_ H_H_H_H_H_H_H_H_H)|(H_H_H_ H_H_H_S_T_U_H_H_H_ H_H_H_H_H_H_H_H_H);
+End Algebra;
+Labels Col Z M/M-M  F/F-F M-F F-M
+Labels Row Z Var delta a b d e s t VT means CovAB CovAF CovBF Va Vb Vta Vd Vs Vt Vf Ve Vge SVa SVb SVta SVd SVs SVt SVf SVe SVge
+  Labels Row X var mztw dztw si pc gpp gpm amzp amzm adzp adzm asip asim
+   comzm comzf codzm codzf codzmf sp smztw sdztw ssi spa sspmz sspdz samzp samzm sadzp sadzm
+  Labels Col X Mm Ff Mf Fm
+Option MxX=GEC8sdfr.Xmat
+Option MxZ=GEC8sdfr.Zmat
+Option Format=(4(F12.8,1x)) 
+!Option Multiple
+!Option Jiggle
+!Options Optimality = 1.E-5
+!Options FunctionPrecision = 1.E-7
+!Fix all
+!Option Iterations=500
+!Option THard=-1
+Option NDecimals=8
+/*
+Drop @.25 P 6 1 1
+Drop @1 S 6 1 1
+Drop @1 V 6 1 1
+Drop F 6 1 1               ! drop B
+Drop K 7  1 1               ! drop Cov(A,B)
+Drop J 6 1 1 K 6 1 1      ! drop Cov(B,F)m, Cov(B,F)f
+Equate D 6 1 1 E 6 1 1 ! equate Af, Am
+Equate N 6 1 1 O 6 1 1 ! equate Df, Dm
+Equate W 6 1 1 X 6 1 1 ! equate Ef, Em
+Equate T 6 1 1 U 6 1 1   ! equate T
+Equate Q 6 1 1 R 6 1 1   ! equate  S
+Equate H 6 1 1 I 6 1 1 ! equate Cov(A,F)m, Cov(A,F)f
+Equate J 6 1 1 K 6 1 1 ! equate Cov(B,F)m, Cov(B,F)f
+Equate A 7 1 1 B 7 1 1 C 7 1 1 D 7 1 1 !equate all cultural trans paths
+Equate P 40 1 1 Q 40 1 1 ! equate mean(m) mean(f)
+Equate B 1 1 1 C 1 1 1     ! equate Var(m) Var(f)
+*/
+End
+
+
+/*
+!SECOND RUN - CORRECT MODEL
+
+ System mv casEst.txt casEst.full.txt
+ System mv casObCov.txt casObCov.full.txt 
+
+#Drop parameters
+Drop T 6 1 1 U 6 1 1   ! drop T
+Drop Q 6 1 1 R 6 1 1   ! drop  S
+!Drop C 6 1 1               ! drop AM (d copath)
+!Drop D 6 1 1 E 6 1 1   ! drop Af, Am
+!Drop N 6 1 1 O 6 1 1   ! drop Df, Dm
+!Drop H 6 1 1 I 6 1 1     ! drop Cov(A,F)m, Cov(A,F)f
+!Drop A 7 1 1 B 7 1 1 C 7 1 1 D 7 1 1 !drop all cultural trans paths
+End
+*/

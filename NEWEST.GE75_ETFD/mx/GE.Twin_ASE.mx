@@ -1,0 +1,137 @@
+Twin only ASE model with the cascade data sets
+
+!G1 parameters
+Calc NGoups=6
+Begin Matrices;
+X full 1 1 free !A
+Y full 1 1 free !D
+Z full 1 1 free !E
+H full 1 1  !.5
+Q full 1 1  ! 1
+M full 1 1 free !male mean
+N full 1 1 free !female mean
+End Matrices;
+Ma H .5
+Ma Q 1
+Ma Z .6
+Ma X .4
+Ma Y .2
+Begin Algebra;
+A = X*X;
+D = Y*Y;
+E = Z*Z;
+V = A+D+E;
+R = V|A+D _A+D|V; !MZ Cov
+S = V|H*A+Q*D _ H*A+Q*D|V; !DZ Cov
+B = M|M;
+G = N|N;
+O = M|N;
+P = V|X|Y|Z|M|N|A|D|E|A%V|D%V|E%V;
+End Algebra;
+Option MxP=TwinEst.txt
+Option Format=(12(F6.3,1x)) 
+End
+
+GROUP2: MZM Data group 
+!Estimate the covs
+Data NI=37
+Missing=-999
+Rec File =MZM
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select Tw1 Tw2 ;
+!definition
+Begin Matrices;
+C computed 2 2 =R1 ! Covariance
+M computed 1 2 =B1 ! Means
+End Matrices;
+Cov C ;
+Means M ;
+End
+
+
+GROUP3: MZf Data group 
+!Estimate the covs
+Data NI=37
+Missing=-999
+Rec File =MZF
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select Tw1 Tw2 ;
+!definition
+Begin Matrices;
+C computed 2 2 =R1 ! Covariance
+M computed 1 2 =G1 ! Means
+End Matrices;
+Cov C ;
+Means M ;
+End
+
+
+GROUP4: DZM Data group 
+!Estimate the covs
+Data NI=37
+Missing=-999
+Rec File =DZM
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select Tw1 Tw2 ;
+!definition
+Begin Matrices;
+C computed 2 2 =S1 ! Covariance
+M computed 1 2 =B1 ! Means
+End Matrices;
+Cov C ;
+Means M ;
+End
+
+
+GROUP5: DZF Data group 
+!Estimate the covs
+Data NI=37
+Missing=-999
+Rec File =DZF
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select Tw1 Tw2 ;
+!definition
+Begin Matrices;
+C computed 2 2 =S1 ! Covariance
+M computed 1 2 =G1 ! Means
+End Matrices;
+Cov C ;
+Means M ;
+End
+
+
+GROUP6: DZOS Data group 
+!Estimate the covs
+Data NI=37
+Missing=-999
+Rec File =DZOS
+Labels   Famid Tw1 Tw2 Fa Mo bro1 bro2 sis1 sis2 sp.tw1 sp.tw2
+         son1.tw1 son2.tw1 dau1.tw1 dau2.tw1 son1.tw2 son2.tw2 dau1.tw2 dau2.tw2 
+         Tw1.age Tw2.age Fa.age Mo.age bro1.age bro2.age sis1.age sis2.age sp.tw1.age 
+         sp.tw2.age  son1.tw1.age son2.tw1.age dau1.tw1.age dau2.tw1.age  son1.tw2.age 
+         son2.tw2.age dau1.tw2.age dau2.tw2.age
+Select Tw2 Tw1 ;
+!definition
+Begin Matrices;
+C computed 2 2 =S1 ! Covariance
+M computed 1 2 =O1 ! Means
+End Matrices;
+Cov C ;
+Means M ;
+End
